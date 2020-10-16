@@ -1,5 +1,3 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 /// TODO: doc
 #[derive(Copy, Clone, Default, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub struct Cycles(u64);

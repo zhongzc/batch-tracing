@@ -1,5 +1,22 @@
 use crate::local::acquirer_group::submit_task_span;
 use crate::span::{ExternalSpan, Span};
+use crossbeam_channel::Sender;
+use std::sync::Arc;
+
+#[derive(Clone, Debug)]
+pub struct Acquirer {
+    sender: Arc<Sender<Vec<Span>>>,
+}
+
+impl Acquirer {
+    pub fn new(sender: Arc<Sender<Vec<Span>>>) -> Self {
+        Acquirer { sender }
+    }
+
+    pub fn submit(&self, spans: Vec<Span>) {
+        self.sender.send(spans).ok();
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct AcquirerGroup {
@@ -64,15 +81,4 @@ impl Drop for AcquirerGroup {
     fn drop(&mut self) {
         submit_task_span(self, &self.task_span)
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct Acquirer {}
-
-impl Acquirer {
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    pub fn submit(&self, spans: Vec<Span>) {}
 }

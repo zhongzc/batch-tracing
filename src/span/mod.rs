@@ -12,13 +12,48 @@ pub struct Span {
     begin_cycles: Cycles,
     event: &'static str,
 
-    // post process to fill
+    // post processing will write this
     end_cycles: Cycles,
-    descendant_count: usize,
+
+    // for local queue implementation
+    pub(crate) _descendant_count: usize,
 }
 
 impl Span {
-    pub fn begin_with(
+    pub fn id(&self) -> SpanId {
+        self.id
+    }
+    pub fn set_id(&mut self, id: SpanId) {
+        self.id = id;
+    }
+    pub fn parent_id(&self) -> SpanId {
+        self.parent_id
+    }
+    pub fn set_parent_id(&mut self, parent_id: SpanId) {
+        self.parent_id = parent_id;
+    }
+    pub fn begin_cycles(&self) -> Cycles {
+        self.begin_cycles
+    }
+    pub fn set_begin_cycles(&mut self, begin_cycles: Cycles) {
+        self.begin_cycles = begin_cycles;
+    }
+    pub fn event(&self) -> &'static str {
+        self.event
+    }
+    pub fn set_event(&mut self, event: &'static str) {
+        self.event = event;
+    }
+    pub fn end_cycles(&self) -> Cycles {
+        self.end_cycles
+    }
+    pub fn set_end_cycles(&mut self, end_cycles: Cycles) {
+        self.end_cycles = end_cycles;
+    }
+}
+
+impl Span {
+    pub(crate) fn begin_with(
         id: SpanId,
         parent_id: SpanId,
         begin_cycles: Cycles,
@@ -30,54 +65,17 @@ impl Span {
             begin_cycles,
             event,
             end_cycles: Cycles::default(),
-            descendant_count: 0,
+            _descendant_count: 0,
         }
     }
 
-    pub fn end_with(&mut self, end_cycles: Cycles, descendant_count: usize) {
+    pub(crate) fn end_with(&mut self, end_cycles: Cycles, descendant_count: usize) {
         self.end_cycles = end_cycles;
-        self.descendant_count = descendant_count;
+        self._descendant_count = descendant_count;
     }
 
-    pub fn is_root(&self) -> bool {
-        self.id == SpanId::new(0)
-    }
-
-    pub fn id(&self) -> SpanId {
-        self.id
-    }
-    pub fn parent_id(&self) -> SpanId {
-        self.parent_id
-    }
-    pub fn begin_cycles(&self) -> Cycles {
-        self.begin_cycles
-    }
-    pub fn event(&self) -> &'static str {
-        self.event
-    }
-    pub fn end_cycles(&self) -> Cycles {
-        self.end_cycles
-    }
-    pub fn descendant_count(&self) -> usize {
-        self.descendant_count
-    }
-    pub fn set_id(&mut self, id: SpanId) {
-        self.id = id;
-    }
-    pub fn set_parent_id(&mut self, parent_id: SpanId) {
-        self.parent_id = parent_id;
-    }
-    pub fn set_begin_cycles(&mut self, begin_cycles: Cycles) {
-        self.begin_cycles = begin_cycles;
-    }
-    pub fn set_event(&mut self, event: &'static str) {
-        self.event = event;
-    }
-    pub fn set_end_cycles(&mut self, end_cycles: Cycles) {
-        self.end_cycles = end_cycles;
-    }
-    pub fn set_descendant_count(&mut self, descendant_count: usize) {
-        self.descendant_count = descendant_count;
+    pub(crate) fn is_root(&self) -> bool {
+        self.parent_id == SpanId::new(0)
     }
 }
 
@@ -106,7 +104,7 @@ impl ExternalSpan {
             begin_cycles: self.begin_cycles,
             event: self.event,
             end_cycles,
-            descendant_count: 0,
+            _descendant_count: 0,
         }
     }
 

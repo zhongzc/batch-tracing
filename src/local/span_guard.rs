@@ -6,7 +6,7 @@ pub struct LocalSpanGuard {
 }
 
 impl LocalSpanGuard {
-    pub fn new(event: &'static str) -> Self {
+    pub(crate) fn new(event: &'static str) -> Self {
         SPAN_LINE.with(|span_line| {
             let span_line = unsafe { &mut *span_line.get() };
 

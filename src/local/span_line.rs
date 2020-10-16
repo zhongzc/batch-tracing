@@ -105,14 +105,14 @@ impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {
 
 pub struct Iter<'a, I: Iterator<Item = &'a Span>> {
     raw_iter: I,
-    descendant_count: usize,
+    remaining_descendants: usize,
 }
 
 impl<'a, I: Iterator<Item = &'a Span>> Iter<'a, I> {
     pub fn new(raw_iter: I) -> Self {
         Self {
             raw_iter,
-            descendant_count: 0,
+            remaining_descendants: 0,
         }
     }
 }
@@ -121,8 +121,8 @@ impl<'a, I: Iterator<Item = &'a Span>> Iterator for Iter<'a, I> {
     type Item = Span;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.descendant_count > 0 {
-            self.descendant_count -= 1;
+        if self.remaining_descendants > 0 {
+            self.remaining_descendants -= 1;
             return self.raw_iter.next().cloned();
         }
 
@@ -132,7 +132,7 @@ impl<'a, I: Iterator<Item = &'a Span>> Iterator for Iter<'a, I> {
                 continue;
             }
 
-            self.descendant_count = span.descendant_count();
+            self.remaining_descendants = span._descendant_count;
 
             // set as a root span
             let mut span = *span;

@@ -1,5 +1,4 @@
-use batch_tracing::local::span_guard::LocalSpanGuard;
-use batch_tracing::trace::tracer::Tracer;
+use batch_tracing::{new_span, root_scope};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 fn trace_wide_bench(c: &mut Criterion) {
@@ -7,20 +6,23 @@ fn trace_wide_bench(c: &mut Criterion) {
         "trace_wide",
         |b, len| {
             b.iter(|| {
-                let root = Tracer::root("root");
-                let mut s = root.new_trapper();
-                s.set_trap();
+                let (root_scope, collector) = root_scope("root");
+                {
+                    let _sg = root_scope.start_scope();
 
-                if *len > 1 {
-                    for _ in 0..*len - 1 {
-                        let _g = LocalSpanGuard::new("1");
+                    if *len > 1 {
+                        for _ in 0..*len - 1 {
+                            let _g = new_span("span");
+                        }
                     }
                 }
+
+                black_box(collector.collect());
             });
         },
         vec![1, 10, 100, 1000, 10000],
     );
 }
 
-criterion_group!(benches, trace_wide_bench,);
+criterion_group!(benches, trace_wide_bench);
 criterion_main!(benches);

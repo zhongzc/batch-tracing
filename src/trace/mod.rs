@@ -1,2 +1,3 @@
 pub mod acquirer;
-pub mod tracer;
+pub mod collector;
+pub mod scope;

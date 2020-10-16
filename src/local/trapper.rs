@@ -2,7 +2,6 @@ use crate::local::registry::Listener;
 use crate::local::span_line::SPAN_LINE;
 use crate::span::Span;
 use crate::trace::acquirer::AcquirerGroup;
-use crate::trace::tracer::Tracer;
 use std::sync::Arc;
 
 enum State {
@@ -23,7 +22,7 @@ impl Trapper {
     pub fn new(acquirer_group: Option<Arc<AcquirerGroup>>) -> Self {
         Self {
             caught_spans: vec![],
-            state: acquirer_group.map(|acg| State::Unregistered(acg)),
+            state: acquirer_group.map(State::Unregistered),
         }
     }
 
@@ -61,23 +60,13 @@ impl Trapper {
             }),
         }
     }
-}
 
-impl Trapper {
-    /// Only called by `drop`
-    fn submit(&mut self) {
+    pub fn submit(&mut self) {
         if let Some(State::Unregistered(acg)) = self.state.take() {
             if !self.caught_spans.is_empty() {
                 acg.submit(std::mem::take(&mut self.caught_spans));
             }
         }
-    }
-}
-
-impl Drop for Trapper {
-    fn drop(&mut self) {
-        self.pull();
-        self.submit()
     }
 }
 
