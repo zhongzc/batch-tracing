@@ -10,6 +10,7 @@ pub use crate::trace::scope::Scope;
 use std::sync::atomic::AtomicBool;
 
 pub mod collections;
+pub mod report;
 
 pub(crate) mod local;
 pub(crate) mod span;
@@ -34,7 +35,12 @@ pub fn new_span(event: &'static str) -> LocalSpanGuard {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::report::Reporter;
     use crossbeam_utils::sync::WaitGroup;
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    use std::net::{Ipv4Addr, SocketAddr};
+    use std::time::Instant;
 
     fn four_spans() {
         {
@@ -60,6 +66,16 @@ mod tests {
         }
     }
 
+    fn report(service_name: &'static str, spans: Vec<Span>) {
+        let mut hash = DefaultHasher::new();
+        service_name.hash(&mut hash);
+        Instant::now().hash(&mut hash);
+
+        let socket = SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), 6831);
+        let reporter = Reporter::new(socket, service_name);
+        reporter.report(hash.finish(), spans).ok();
+    }
+
     #[test]
     fn single_thread_single_scope() {
         let spans = {
@@ -73,6 +89,7 @@ mod tests {
         .collect();
 
         assert_eq!(spans.len(), 5);
+        report("single_thread_single_scope", spans);
     }
 
     #[test]
@@ -98,6 +115,9 @@ mod tests {
         assert_eq!(spans1.len(), 5);
         assert_eq!(spans2.len(), 5);
         assert_eq!(spans3.len(), 5);
+        report("single_thread_multiple_scopes1", spans1);
+        report("single_thread_multiple_scopes2", spans2);
+        report("single_thread_multiple_scopes3", spans3);
     }
 
     #[test]
@@ -129,7 +149,8 @@ mod tests {
         }
         .collect();
 
-        assert_eq!(spans.len(), 29);
+        assert_eq!(spans.len(), 25);
+        report("multiple_threads_single_scope", spans);
     }
 
     #[test]
@@ -166,7 +187,9 @@ mod tests {
             (c1.collect(), c2.collect())
         };
 
-        assert_eq!(spans1.len(), 29);
-        assert_eq!(spans2.len(), 29);
+        assert_eq!(spans1.len(), 25);
+        assert_eq!(spans2.len(), 25);
+        report("multiple_threads_multiple_scopes1", spans1);
+        report("multiple_threads_multiple_scopes2", spans2);
     }
 }

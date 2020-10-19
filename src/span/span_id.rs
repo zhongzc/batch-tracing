@@ -1,8 +1,8 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
 /// TODO: doc
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct SpanId(u64);
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+pub struct SpanId(pub u64);
 
 impl SpanId {
     pub fn new(id: u64) -> Self {

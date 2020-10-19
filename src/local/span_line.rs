@@ -1,5 +1,5 @@
 use crate::local::registry::{Listener, Registry};
-use crate::span::cycle::{Clock, TempClock};
+use crate::span::cycle::{Clock, Cycle, Realtime, TempClock};
 use crate::span::span_id::{IdGenerator, SpanId, TempIdGenerator};
 use crate::span::span_queue::{Finisher, SpanQueue};
 use crate::span::{ExternalSpan, Span};
@@ -76,6 +76,10 @@ impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {
             )),
         }
     }
+
+    pub fn cycle_to_realtime(&self, cycle: Cycle) -> Realtime {
+        self.span_queue.cycle_to_realtime(cycle)
+    }
 }
 
 impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {
@@ -128,7 +132,7 @@ impl<'a, I: Iterator<Item = &'a Span>> Iterator for Iter<'a, I> {
 
         while let Some(span) = self.raw_iter.next() {
             // skip non-finished span
-            if span.end_cycles().is_zero() {
+            if span.end_cycles.is_zero() {
                 continue;
             }
 
@@ -136,7 +140,7 @@ impl<'a, I: Iterator<Item = &'a Span>> Iterator for Iter<'a, I> {
 
             // set as a root span
             let mut span = *span;
-            span.set_parent_id(SpanId::new(0));
+            span.parent_id = SpanId::new(0);
 
             return Some(span);
         }

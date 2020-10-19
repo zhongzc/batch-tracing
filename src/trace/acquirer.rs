@@ -75,7 +75,7 @@ impl AcquirerGroup {
     fn modify_root_spans(&self, spans: &mut [Span]) {
         for span in spans {
             if span.is_root() {
-                span.set_parent_id(self.task_span.id());
+                span.parent_id = self.task_span.id;
             }
         }
     }
