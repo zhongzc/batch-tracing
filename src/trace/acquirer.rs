@@ -1,20 +1,26 @@
 use crate::local::acquirer_group::submit_task_span;
 use crate::span::{ExternalSpan, Span};
 use crossbeam_channel::Sender;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 pub struct Acquirer {
     sender: Arc<Sender<Vec<Span>>>,
+    closed: Arc<AtomicBool>,
 }
 
 impl Acquirer {
-    pub fn new(sender: Arc<Sender<Vec<Span>>>) -> Self {
-        Acquirer { sender }
+    pub fn new(sender: Arc<Sender<Vec<Span>>>, closed: Arc<AtomicBool>) -> Self {
+        Acquirer { sender, closed }
     }
 
     pub fn submit(&self, spans: Vec<Span>) {
         self.sender.send(spans).ok();
+    }
+
+    pub fn is_shutdown(&self) -> bool {
+        self.closed.load(Ordering::SeqCst)
     }
 }
 
@@ -38,7 +44,15 @@ impl AcquirerGroup {
         external_span: ExternalSpan,
     ) -> Self {
         let acquirers = iter
-            .map(|s| s.acquirers.clone())
+            .map(|s| {
+                s.acquirers.iter().filter_map(|acq| {
+                    if acq.is_shutdown() {
+                        None
+                    } else {
+                        Some(acq.clone())
+                    }
+                })
+            })
             .flatten()
             .collect::<Vec<_>>();
         Self {

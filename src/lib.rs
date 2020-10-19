@@ -7,6 +7,8 @@ pub use crate::local::span_guard::LocalSpanGuard;
 pub use crate::span::Span;
 pub use crate::trace::collector::Collector;
 pub use crate::trace::scope::Scope;
+use std::sync::atomic::AtomicBool;
+
 pub mod collections;
 
 pub(crate) mod local;
@@ -15,8 +17,9 @@ pub(crate) mod trace;
 
 pub fn root_scope(event: &'static str) -> (Scope, Collector) {
     let (tx, rx) = crossbeam_channel::unbounded();
-    let scope = Scope::new_root_scope(event, Arc::new(tx));
-    let collector = Collector::new(rx);
+    let closed = Arc::new(AtomicBool::new(false));
+    let scope = Scope::new_root_scope(event, tx, Arc::clone(&closed));
+    let collector = Collector::new(rx, closed);
     (scope, collector)
 }
 

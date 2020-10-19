@@ -3,6 +3,7 @@ use crate::local::scope_guard::LocalScopeGuard;
 use crate::span::Span;
 use crate::trace::acquirer::{Acquirer, AcquirerGroup};
 use crossbeam_channel::Sender;
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
 pub struct Scope {
@@ -16,9 +17,16 @@ impl Scope {
 }
 
 impl Scope {
-    pub(crate) fn new_root_scope(event: &'static str, sender: Arc<Sender<Vec<Span>>>) -> Self {
+    pub(crate) fn new_root_scope(
+        event: &'static str,
+        sender: Sender<Vec<Span>>,
+        closed: Arc<AtomicBool>,
+    ) -> Self {
         Self {
-            acquirer_group: Some(Arc::new(root_acquirer_group(Acquirer::new(sender), event))),
+            acquirer_group: Some(Arc::new(root_acquirer_group(
+                Acquirer::new(Arc::new(sender), closed),
+                event,
+            ))),
         }
     }
 
