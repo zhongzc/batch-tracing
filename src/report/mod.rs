@@ -20,16 +20,7 @@ impl Reporter {
         }
     }
 
-    pub fn report(&self, trace_id: u64, spans: Vec<RawSpan>) -> Result<(), Box<dyn Error>> {
-        let local_addr: SocketAddr = if self.agent.is_ipv4() {
-            "0.0.0.0:0"
-        } else {
-            "[::]:0"
-        }
-        .parse()?;
-
-        let udp = UdpSocket::bind(local_addr)?;
-
+    pub fn encode(&self, trace_id: u64, spans: Vec<RawSpan>) -> Result<Vec<u8>, Box<dyn Error>> {
         let bn = EmitBatchNotification {
             batch: Batch {
                 process: Process {
@@ -67,7 +58,18 @@ impl Reporter {
         let mut bytes = Vec::new();
         let msg = Message::from(bn);
         msg.compact_encode(&mut bytes)?;
+        Ok(bytes)
+    }
 
+    pub fn report(&self, bytes: &[u8]) -> Result<(), Box<dyn Error>> {
+        let local_addr: SocketAddr = if self.agent.is_ipv4() {
+            "0.0.0.0:0"
+        } else {
+            "[::]:0"
+        }
+        .parse()?;
+
+        let udp = UdpSocket::bind(local_addr)?;
         udp.send_to(&bytes, self.agent)?;
 
         Ok(())

@@ -73,7 +73,8 @@ mod tests {
 
         let socket = SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), 6831);
         let reporter = Reporter::new(socket, service_name);
-        reporter.report(hash.finish(), spans).ok();
+        let bytes = reporter.encode(hash.finish(), spans).unwrap();
+        reporter.report(&bytes).ok();
     }
 
     #[test]
