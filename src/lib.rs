@@ -28,6 +28,7 @@ pub fn spawn_scope(event: &'static str) -> Scope {
     Scope::new_scope(event)
 }
 
+#[inline]
 pub fn new_span(event: &'static str) -> LocalSpanGuard {
     LocalSpanGuard::new(event)
 }

@@ -23,6 +23,7 @@ pub struct Span {
 }
 
 impl Span {
+    #[inline]
     pub(crate) fn begin_with(
         id: SpanId,
         parent_id: SpanId,
@@ -40,11 +41,13 @@ impl Span {
         }
     }
 
+    #[inline]
     pub(crate) fn end_with(&mut self, end_cycles: Cycle, descendant_count: usize) {
         self.end_cycles = end_cycles;
         self._descendant_count = descendant_count;
     }
 
+    #[inline]
     pub(crate) fn is_root(&self) -> bool {
         self.parent_id == SpanId::new(0)
     }

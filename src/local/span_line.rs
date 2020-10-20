@@ -35,6 +35,7 @@ impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {
         Some(self.span_queue.start_span(event))
     }
 
+    #[inline]
     pub fn finish_span(&mut self, finisher: Finisher) {
         self.span_queue.finish_span(finisher);
     }

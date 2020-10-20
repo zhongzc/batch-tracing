@@ -77,8 +77,9 @@ impl<T> FixedIndexQueue<T> {
     /// assert_eq!(&queue[0], &42);
     /// assert_eq!(&queue[1], &24);
     /// ```
+    #[inline]
     pub fn push_back(&mut self, value: T) -> usize {
-        let index = self.offset + self.internal.len();
+        let index = self.offset.wrapping_add(self.internal.len());
         self.internal.push_back(value);
         index
     }
@@ -101,6 +102,7 @@ impl<T> FixedIndexQueue<T> {
     /// assert_eq!(queue.pop_front(), Some(24));
     /// assert_eq!(queue.pop_front(), None);
     /// ```
+    #[inline]
     pub fn pop_front(&mut self) -> Option<T> {
         if self.internal.is_empty() {
             None
@@ -299,6 +301,7 @@ impl<T> FixedIndexQueue<T> {
     /// queue.remove_before(2);
     /// assert_eq!(queue.len(), 1);
     /// ```
+    #[inline]
     pub fn remove_before(&mut self, index: usize) {
         assert!(self.idx_is_valid(index), "index {} isn't valid", index);
 
@@ -324,6 +327,7 @@ impl<T> FixedIndexQueue<T> {
     /// let c: Vec<&i32> = queue.iter().collect();
     /// assert_eq!(&c[..], b);
     /// ```
+    #[inline]
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.internal.iter()
     }
@@ -342,6 +346,7 @@ impl<T> FixedIndexQueue<T> {
     /// let c: Vec<&i32> = queue.iter_skip_to(2).collect();
     /// assert_eq!(&c[..], b);
     /// ```
+    #[inline]
     pub fn iter_skip_to(&self, index: usize) -> impl Iterator<Item = &T> {
         let skip = index.wrapping_sub(self.offset);
         self.internal.iter().skip(skip)

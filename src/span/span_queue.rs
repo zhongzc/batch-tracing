@@ -20,6 +20,7 @@ impl<IG: IdGenerator, C: Clock> SpanQueue<IG, C> {
         }
     }
 
+    #[inline]
     pub fn start_span(&mut self, event: &'static str) -> Finisher {
         let s = self.gen_span(self.next_parent_id, event);
         self.next_parent_id = s.id;
@@ -27,6 +28,7 @@ impl<IG: IdGenerator, C: Clock> SpanQueue<IG, C> {
         Finisher { index }
     }
 
+    #[inline]
     pub fn finish_span(&mut self, finisher: Finisher) {
         if !self.span_queue.idx_is_valid(finisher.index) {
             return;
@@ -39,6 +41,7 @@ impl<IG: IdGenerator, C: Clock> SpanQueue<IG, C> {
         self.next_parent_id = span.parent_id;
     }
 
+    #[inline]
     pub fn start_external_span(
         &mut self,
         placeholder_event: &'static str,
@@ -52,31 +55,38 @@ impl<IG: IdGenerator, C: Clock> SpanQueue<IG, C> {
         self.gen_external_span(es_parent, event, s.begin_cycles)
     }
 
+    #[inline]
     pub fn start_root_external_span(&mut self, event: &'static str) -> ExternalSpan {
         self.gen_external_span(SpanId::new(0), event, self.clock.now())
     }
 
+    #[inline]
     pub fn finish_external_span(&self, external_span: &ExternalSpan) -> Span {
         external_span.to_span(self.clock.now())
     }
 
+    #[inline]
     pub fn next_index(&self) -> usize {
         self.span_queue.next_index()
     }
 
+    #[inline]
     pub fn clear(&mut self) {
         self.span_queue.clear();
         self.next_parent_id = SpanId::new(0);
     }
 
+    #[inline]
     pub fn remove_before(&mut self, index: usize) {
         self.span_queue.remove_before(index);
     }
 
+    #[inline]
     pub fn iter_skip_to(&self, index: usize) -> impl Iterator<Item = &Span> {
         self.span_queue.iter_skip_to(index)
     }
 
+    #[inline]
     pub fn cycle_to_realtime(&self, cycle: Cycle) -> Realtime {
         self.clock.cycle_to_realtime(cycle)
     }
