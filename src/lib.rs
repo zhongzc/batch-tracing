@@ -11,7 +11,9 @@ pub use crate::trace::scope::Scope;
 use std::sync::atomic::AtomicBool;
 
 pub mod collections;
+pub mod future;
 pub mod report;
+pub use batch_tracing_macro::{trace, trace_async};
 
 pub(crate) mod local;
 pub(crate) mod span;
@@ -59,10 +61,9 @@ mod tests {
         }
 
         {
+            #[trace("rec span")]
             fn rec(mut i: u32) {
                 i -= 1;
-
-                let _g = new_span("rec span");
 
                 if i > 0 {
                     rec(i);

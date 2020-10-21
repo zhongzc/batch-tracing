@@ -10,6 +10,16 @@ minstant = { git = "https://github.com/zhongzc/minstant.git" }
 crossbeam-channel = "0.5"
 rustracing_jaeger = "0.5.0"
 thrift_codec = "0.1.1"
+pin-project = "0.4"
+batch-tracing-macro = { path = "crates/batch-tracing-macro"}
+
+[dependencies.futures_01]
+version = "0.1"
+package = "futures"
+
+[dependencies.futures_03]
+version = "0.3.1"
+package = "futures"
 
 [dev-dependencies]
 criterion = "0.3"
@@ -18,6 +28,9 @@ crossbeam-utils = "0.8"
 [[bench]]
 name = "trace"
 harness = false
+
+[workspace]
+members = [ "crates/*" ]
 
 [profile.release]
 debug = true
