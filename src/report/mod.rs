@@ -20,7 +20,11 @@ impl Reporter {
         }
     }
 
-    pub fn encode(&self, trace_id: u64, spans: Vec<RawSpan>) -> Result<Vec<u8>, Box<dyn Error>> {
+    pub fn encode(
+        &self,
+        trace_id: u64,
+        spans: Vec<RawSpan>,
+    ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
         let bn = EmitBatchNotification {
             batch: Batch {
                 process: Process {
@@ -61,7 +65,7 @@ impl Reporter {
         Ok(bytes)
     }
 
-    pub fn report(&self, bytes: &[u8]) -> Result<(), Box<dyn Error>> {
+    pub fn report(&self, bytes: &[u8]) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         let local_addr: SocketAddr = if self.agent.is_ipv4() {
             "0.0.0.0:0"
         } else {
