@@ -14,6 +14,7 @@ pub mod collections;
 pub mod future;
 pub mod report;
 pub use batch_tracing_macro::{trace, trace_async};
+pub use crate::local::time_convert::cycle_to_realtime;
 
 pub(crate) mod local;
 pub(crate) mod span;
