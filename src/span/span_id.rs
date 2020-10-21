@@ -1,4 +1,5 @@
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::cell::UnsafeCell;
+use std::sync::atomic::{AtomicU16, AtomicU32, Ordering};
 
 /// TODO: doc
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
@@ -16,10 +17,38 @@ pub trait IdGenerator {
 
 pub struct TempIdGenerator;
 
-static NEXT_ID: AtomicU32 = AtomicU32::new(100);
+static NEXT_SNOWFLAKE_ID_PREFIX: AtomicU16 = AtomicU16::new(0);
+fn next_snowflake_id_prefix() -> u16 {
+    NEXT_SNOWFLAKE_ID_PREFIX.fetch_add(1, Ordering::AcqRel)
+}
+thread_local! {
+    static SNOWFLACK_ID_GENERATOR: UnsafeCell<(u16, u16)> = UnsafeCell::new((next_snowflake_id_prefix(), 1))
+}
 
 impl IdGenerator for TempIdGenerator {
     fn next_id(&self) -> SpanId {
-        SpanId::new(NEXT_ID.fetch_add(1, Ordering::SeqCst) as _)
+        let (prefix, suffix) = SNOWFLACK_ID_GENERATOR.with(|g| unsafe { &mut *g.get() });
+        if *suffix == std::u16::MAX {
+            *suffix = 0;
+            *prefix = next_snowflake_id_prefix();
+        }
+        *suffix += 1;
+        SpanId::new(
+            ((Self::get_prefix() as u64) << 32) | ((*prefix as u64) << 16) | (*suffix as u64),
+        )
+    }
+}
+
+static ID_PREFIX: AtomicU32 = AtomicU32::new(0);
+
+impl TempIdGenerator {
+    #[inline]
+    pub fn set_prefix(prefix: u32) {
+        ID_PREFIX.store(prefix, Ordering::Release);
+    }
+
+    #[inline]
+    pub fn get_prefix() -> u32 {
+        ID_PREFIX.load(Ordering::Acquire)
     }
 }
