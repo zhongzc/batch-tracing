@@ -6,6 +6,7 @@ use crossbeam_channel::Sender;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct Scope {
     acquirer_group: Option<Arc<AcquirerGroup>>,
 }

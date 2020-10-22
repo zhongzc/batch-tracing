@@ -3,6 +3,7 @@
 
 use std::sync::Arc;
 
+pub use crate::local::scope_guard::LocalScopeGuard;
 pub use crate::local::span_guard::LocalSpanGuard;
 use crate::span::span_id::TempIdGenerator;
 pub use crate::span::Span;
