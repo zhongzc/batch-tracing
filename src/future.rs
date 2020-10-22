@@ -35,7 +35,13 @@ impl<T: std::future::Future> std::future::Future for NewScope<T> {
     fn poll(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
         let _guard = this.scope.start_scope();
-        this.inner.poll(cx)
+        match this.inner.poll(cx) {
+            r @ Poll::Pending => r,
+            other => {
+                this.scope.release();
+                other
+            }
+        }
     }
 }
 
@@ -45,7 +51,13 @@ impl<T: futures_01::Future> futures_01::Future for NewScope<T> {
 
     fn poll(&mut self) -> futures_01::Poll<Self::Item, Self::Error> {
         let _guard = self.scope.start_scope();
-        self.inner.poll()
+        match self.inner.poll() {
+            r @ Ok(futures_01::Async::NotReady) => r,
+            other => {
+                self.scope.release();
+                other
+            }
+        }
     }
 }
 

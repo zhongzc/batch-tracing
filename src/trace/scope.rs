@@ -35,4 +35,8 @@ impl Scope {
             acquirer_group: registered_acquirer_group(event).map(Arc::new),
         }
     }
+
+    pub(crate) fn release(&mut self) {
+        self.acquirer_group.take();
+    }
 }
