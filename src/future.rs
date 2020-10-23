@@ -7,29 +7,32 @@ impl<T: Sized> FutureExt for T {}
 
 pub trait FutureExt: Sized {
     #[inline]
-    fn in_new_scope(self, event: &'static str) -> NewScope<Self> {
-        NewScope {
+    fn in_new_scope(self, event: &'static str) -> WithScope<Self> {
+        WithScope {
             inner: self,
-            event,
             scope: spawn_scope(event),
         }
     }
 
     #[inline]
-    fn in_new_span(self, event: &'static str) -> NewSpan<Self> {
-        NewSpan { inner: self, event }
+    fn with_scope(self, scope: Scope) -> WithScope<Self> {
+        WithScope { inner: self, scope }
+    }
+
+    #[inline]
+    fn in_new_span(self, event: &'static str) -> WithSpan<Self> {
+        WithSpan { inner: self, event }
     }
 }
 
 #[pin_project::pin_project]
-pub struct NewScope<T> {
+pub struct WithScope<T> {
     #[pin]
     inner: T,
-    event: &'static str,
     scope: Scope,
 }
 
-impl<T: std::future::Future> std::future::Future for NewScope<T> {
+impl<T: std::future::Future> std::future::Future for WithScope<T> {
     type Output = T::Output;
 
     fn poll(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
@@ -45,7 +48,7 @@ impl<T: std::future::Future> std::future::Future for NewScope<T> {
     }
 }
 
-impl<T: futures_01::Future> futures_01::Future for NewScope<T> {
+impl<T: futures_01::Future> futures_01::Future for WithScope<T> {
     type Item = T::Item;
     type Error = T::Error;
 
@@ -62,13 +65,13 @@ impl<T: futures_01::Future> futures_01::Future for NewScope<T> {
 }
 
 #[pin_project::pin_project]
-pub struct NewSpan<T> {
+pub struct WithSpan<T> {
     #[pin]
     inner: T,
     event: &'static str,
 }
 
-impl<T: std::future::Future> std::future::Future for NewSpan<T> {
+impl<T: std::future::Future> std::future::Future for WithSpan<T> {
     type Output = T::Output;
 
     fn poll(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
@@ -78,7 +81,7 @@ impl<T: std::future::Future> std::future::Future for NewSpan<T> {
     }
 }
 
-impl<T: futures_01::Future> futures_01::Future for NewSpan<T> {
+impl<T: futures_01::Future> futures_01::Future for WithSpan<T> {
     type Item = T::Item;
     type Error = T::Error;
 
