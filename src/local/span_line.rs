@@ -1,6 +1,6 @@
 use crate::local::registry::{Listener, Registry};
-use crate::span::cycle::{Clock, Cycle, Realtime, TempClock};
-use crate::span::span_id::{IdGenerator, SpanId, TempIdGenerator};
+use crate::span::cycle::{Clock, Cycle, Realtime, DefaultClock};
+use crate::span::span_id::{IdGenerator, SpanId, DefaultIdGenerator};
 use crate::span::span_queue::{SpanHandle, SpanQueue};
 use crate::span::{ExternalSpan, Span};
 use crate::trace::acquirer::AcquirerGroup;
@@ -9,7 +9,7 @@ use std::cell::UnsafeCell;
 use std::sync::Arc;
 
 thread_local! {
-    pub(super) static SPAN_LINE: UnsafeCell<SpanLine<TempIdGenerator, TempClock>> = UnsafeCell::new(SpanLine::new(TempIdGenerator, TempClock));
+    pub(super) static SPAN_LINE: UnsafeCell<SpanLine<DefaultIdGenerator, DefaultClock>> = UnsafeCell::new(SpanLine::new(DefaultIdGenerator, DefaultClock));
 }
 
 pub struct SpanLine<IdGenerator, Clock> {

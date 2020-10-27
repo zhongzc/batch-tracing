@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 pub use crate::local::scope_guard::LocalScopeGuard;
 pub use crate::local::span_guard::LocalSpanGuard;
-use crate::span::span_id::TempIdGenerator;
+use crate::span::span_id::DefaultIdGenerator;
 pub use crate::span::Span;
 pub use crate::trace::collector::Collector;
 pub use crate::trace::scope::Scope;
@@ -41,7 +41,7 @@ pub fn new_span(event: &'static str) -> LocalSpanGuard {
 
 #[inline]
 pub fn set_id_prefix(id_prefix: u32) {
-    TempIdGenerator::set_prefix(id_prefix)
+    DefaultIdGenerator::set_prefix(id_prefix)
 }
 
 #[cfg(test)]

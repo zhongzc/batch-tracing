@@ -1,6 +1,6 @@
 use crate::local::span_line::{SpanLine, SPAN_LINE};
-use crate::span::cycle::TempClock;
-use crate::span::span_id::TempIdGenerator;
+use crate::span::cycle::DefaultClock;
+use crate::span::span_id::DefaultIdGenerator;
 use crate::span::span_queue::SpanHandle;
 
 pub struct LocalSpanGuard {
@@ -41,7 +41,7 @@ impl LocalSpanGuard {
     #[inline]
     fn with_span_line(
         &self,
-        f: impl FnOnce(&SpanHandle, &mut SpanLine<TempIdGenerator, TempClock>),
+        f: impl FnOnce(&SpanHandle, &mut SpanLine<DefaultIdGenerator, DefaultClock>),
     ) {
         if let Some(span_handle) = &self.span_handle {
             SPAN_LINE.with(|span_line| {

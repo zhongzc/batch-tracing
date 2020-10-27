@@ -25,7 +25,7 @@ pub trait Clock {
     fn cycle_to_realtime(&self, cycle: Cycle) -> Realtime;
 }
 
-pub struct TempClock;
+pub struct DefaultClock;
 
 #[derive(Copy, Clone, Default)]
 struct Anchor {
@@ -34,7 +34,7 @@ struct Anchor {
     pub cycles_per_second: u64,
 }
 
-impl Clock for TempClock {
+impl Clock for DefaultClock {
     fn now(&self) -> Cycle {
         Cycle::new(minstant::now())
     }
@@ -57,7 +57,7 @@ impl Clock for TempClock {
     }
 }
 
-impl TempClock {
+impl DefaultClock {
     fn anchor() -> Anchor {
         static mut ANCHOR: Anchor = Anchor {
             realtime: Realtime { ns: 0 },

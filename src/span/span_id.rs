@@ -15,7 +15,7 @@ pub trait IdGenerator {
     fn next_id(&self) -> SpanId;
 }
 
-pub struct TempIdGenerator;
+pub struct DefaultIdGenerator;
 
 static NEXT_SNOWFLAKE_ID_PREFIX: AtomicU16 = AtomicU16::new(0);
 fn next_snowflake_id_prefix() -> u16 {
@@ -25,7 +25,7 @@ thread_local! {
     static SNOWFLACK_ID_GENERATOR: UnsafeCell<(u16, u16)> = UnsafeCell::new((next_snowflake_id_prefix(), 1))
 }
 
-impl IdGenerator for TempIdGenerator {
+impl IdGenerator for DefaultIdGenerator {
     fn next_id(&self) -> SpanId {
         let (prefix, suffix) = SNOWFLACK_ID_GENERATOR.with(|g| unsafe { &mut *g.get() });
         if *suffix == std::u16::MAX {
@@ -41,7 +41,7 @@ impl IdGenerator for TempIdGenerator {
 
 static ID_PREFIX: AtomicU32 = AtomicU32::new(0);
 
-impl TempIdGenerator {
+impl DefaultIdGenerator {
     #[inline]
     pub fn set_prefix(prefix: u32) {
         ID_PREFIX.store(prefix, Ordering::Release);
