@@ -281,9 +281,12 @@ impl<T> FixedIndexQueue<T> {
     /// assert!(!queue.is_empty());
     /// queue.clear();
     /// assert!(queue.is_empty());
+    ///
+    /// assert_eq!(queue.push_back(42), 2);
     /// ```
     #[inline]
     pub fn clear(&mut self) {
+        self.offset = self.offset.wrapping_add(self.len());
         self.internal.clear();
     }
 
@@ -332,7 +335,7 @@ impl<T> FixedIndexQueue<T> {
         self.internal.iter()
     }
 
-    /// Returns a front-to-end iter, beginning at `index`.
+    /// Returns a front-to-end Iterator, beginning at `index`.
     /// # Examples
     /// ```
     /// use batch_tracing::collections::queue::FixedIndexQueue;
@@ -343,13 +346,34 @@ impl<T> FixedIndexQueue<T> {
     /// queue.push_back(43);
     ///
     /// let b: &[_] = &[&43];
-    /// let c: Vec<&i32> = queue.iter_skip_to(2).collect();
+    /// let c: Vec<&i32> = queue.iter_ref_skip_to(2).collect();
     /// assert_eq!(&c[..], b);
     /// ```
     #[inline]
-    pub fn iter_skip_to(&self, index: usize) -> impl Iterator<Item = &T> {
+    pub fn iter_ref_skip_to(&self, index: usize) -> impl Iterator<Item = &T> {
         let skip = index.wrapping_sub(self.offset);
         self.internal.iter().skip(skip)
+    }
+
+    /// Returns a front-to-end IntoIterator, beginning at `index`.
+    /// # Examples
+    /// ```
+    /// use batch_tracing::collections::queue::FixedIndexQueue;
+    ///
+    /// let mut queue = FixedIndexQueue::new();
+    /// queue.push_back(42);
+    /// queue.push_back(24);
+    /// queue.push_back(43);
+    ///
+    /// let b: &[_] = &[43];
+    /// let mut c: Vec<_> = queue.iter_skip_to(2).collect();
+    /// assert_eq!(&c[..], b);
+    /// ```
+    #[inline]
+    pub fn iter_skip_to(&mut self, index: usize) -> impl Iterator<Item = T> {
+        self.offset = self.offset.wrapping_add(self.internal.len());
+        let vd = std::mem::take(&mut self.internal);
+        vd.into_iter().skip(index)
     }
 }
 

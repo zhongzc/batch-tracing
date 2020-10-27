@@ -17,7 +17,7 @@ fn trace_wide_bench(c: &mut Criterion) {
                     }
                 }
 
-                black_box(collector.collect());
+                black_box(collector.collect(None));
             });
         },
         vec![1, 10, 100, 1000, 10000],

@@ -54,8 +54,8 @@ impl Trapper {
             u @ State::Unregistered(_) => self.state = Some(u),
             State::Registered(listener) => SPAN_LINE.with(|span_line| {
                 let span_line = unsafe { &mut *span_line.get() };
-                self.caught_spans.extend(span_line.spans_from(listener));
-                let acg = span_line.unregister(listener);
+                let (acg, spans) = span_line.unregister_and_collect(listener);
+                self.caught_spans.extend(spans);
                 self.state = Some(State::Unregistered(acg));
             }),
         }

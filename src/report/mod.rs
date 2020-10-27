@@ -1,7 +1,7 @@
 use crate::local::time_convert::cycle_to_realtime;
-use crate::Span as RawSpan;
+use crate::Span;
 use rustracing_jaeger::thrift::agent::EmitBatchNotification;
-use rustracing_jaeger::thrift::jaeger::{Batch, Process, Span, SpanRef, SpanRefKind};
+use rustracing_jaeger::thrift::jaeger::{Batch, Process, Span as JaegerSpan, SpanRef, SpanRefKind};
 use std::error::Error;
 use std::net::{SocketAddr, UdpSocket};
 use thrift_codec::message::Message;
@@ -21,22 +21,22 @@ impl Reporter {
     }
 
     pub fn encode(
-        &self,
+        service_name: String,
         trace_id: u64,
-        spans: Vec<RawSpan>,
+        spans: Vec<Span>,
     ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
         let bn = EmitBatchNotification {
             batch: Batch {
                 process: Process {
-                    service_name: self.service_name.to_string(),
+                    service_name,
                     tags: vec![],
                 },
                 spans: spans
                     .into_iter()
                     .map(|s| {
-                        let begin_cycles = cycle_to_realtime(s.begin_cycles);
-                        let end_time = cycle_to_realtime(s.end_cycles);
-                        Span {
+                        let begin_cycles = cycle_to_realtime(s.begin_cycle);
+                        let end_time = cycle_to_realtime(s.end_cycle);
+                        JaegerSpan {
                             trace_id_low: trace_id as i64,
                             trace_id_high: 0,
                             span_id: s.id.0 as i64,
@@ -65,7 +65,11 @@ impl Reporter {
         Ok(bytes)
     }
 
-    pub fn report(&self, bytes: &[u8]) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+    pub fn report(
+        &self,
+        trace_id: u64,
+        spans: Vec<Span>,
+    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         let local_addr: SocketAddr = if self.agent.is_ipv4() {
             "0.0.0.0:0"
         } else {
@@ -74,6 +78,7 @@ impl Reporter {
         .parse()?;
 
         let udp = UdpSocket::bind(local_addr)?;
+        let bytes = Self::encode(self.service_name.to_string(), trace_id, spans)?;
         udp.send_to(&bytes, self.agent)?;
 
         Ok(())

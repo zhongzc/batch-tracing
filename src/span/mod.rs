@@ -5,15 +5,16 @@ pub mod span_queue;
 use crate::span::cycle::Cycle;
 use crate::span::span_id::SpanId;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Span {
     pub id: SpanId,
     pub parent_id: SpanId,
-    pub begin_cycles: Cycle,
+    pub begin_cycle: Cycle,
     pub event: &'static str,
+    pub properties: Vec<(&'static str, String)>,
 
     // post processing will write this
-    pub end_cycles: Cycle,
+    pub end_cycle: Cycle,
 
     // for local queue implementation
     pub(crate) _descendant_count: usize,
@@ -33,9 +34,10 @@ impl Span {
         Span {
             id,
             parent_id,
-            begin_cycles,
+            begin_cycle: begin_cycles,
             event,
-            end_cycles: Cycle::default(),
+            properties: vec![],
+            end_cycle: Cycle::default(),
             _descendant_count: 0,
             _is_spawn_span: false,
         }
@@ -43,13 +45,25 @@ impl Span {
 
     #[inline]
     pub(crate) fn end_with(&mut self, end_cycles: Cycle, descendant_count: usize) {
-        self.end_cycles = end_cycles;
+        self.end_cycle = end_cycles;
         self._descendant_count = descendant_count;
     }
 
     #[inline]
     pub(crate) fn is_root(&self) -> bool {
         self.parent_id == SpanId::new(0)
+    }
+}
+
+impl AsRef<Span> for Span {
+    fn as_ref(&self) -> &Span {
+        self
+    }
+}
+
+impl Into<Span> for &Span {
+    fn into(self) -> Span {
+        self.clone()
     }
 }
 
@@ -75,9 +89,10 @@ impl ExternalSpan {
         Span {
             id: self.id,
             parent_id: self.parent_id,
-            begin_cycles: self.begin_cycles,
+            begin_cycle: self.begin_cycles,
             event: self.event,
-            end_cycles,
+            properties: vec![],
+            end_cycle: end_cycles,
             _descendant_count: 0,
             _is_spawn_span: false,
         }

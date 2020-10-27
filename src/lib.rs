@@ -84,8 +84,7 @@ mod tests {
 
         let socket = SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), 6831);
         let reporter = Reporter::new(socket, service_name);
-        let bytes = reporter.encode(hash.finish(), spans).unwrap();
-        reporter.report(&bytes).ok();
+        reporter.report(hash.finish(), spans).ok();
     }
 
     #[test]
@@ -98,7 +97,7 @@ mod tests {
 
             collector
         }
-        .collect();
+        .collect(None);
 
         assert_eq!(spans.len(), 5);
         report("single_thread_single_scope", spans);
@@ -121,7 +120,7 @@ mod tests {
                 (collector1, collector2, collector3)
             };
 
-            (c1.collect(), c2.collect(), c3.collect())
+            (c1.collect(None), c2.collect(None), c3.collect(None))
         };
 
         assert_eq!(spans1.len(), 5);
@@ -159,7 +158,7 @@ mod tests {
 
             collector
         }
-        .collect();
+        .collect(None);
 
         assert_eq!(spans.len(), 25);
         report("multiple_threads_single_scope", spans);
@@ -196,7 +195,7 @@ mod tests {
                 (collector1, collector2)
             };
 
-            (c1.collect(), c2.collect())
+            (c1.collect(None), c2.collect(None))
         };
 
         assert_eq!(spans1.len(), 25);

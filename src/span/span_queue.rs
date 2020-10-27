@@ -47,12 +47,15 @@ impl<IG: IdGenerator, C: Clock> SpanQueue<IG, C> {
         placeholder_event: &'static str,
         event: &'static str,
     ) -> ExternalSpan {
+        // add a spawn span for indirectly linking to the external span
         let mut s = self.gen_span(self.next_parent_id, placeholder_event);
-        s.end_cycles = s.begin_cycles;
+        let cycle = s.begin_cycle;
+        s.end_cycle = cycle;
         s._is_spawn_span = true;
         let es_parent = s.id;
         self.push_span(s);
-        self.gen_external_span(es_parent, event, s.begin_cycles)
+
+        self.gen_external_span(es_parent, event, cycle)
     }
 
     #[inline]
@@ -71,18 +74,17 @@ impl<IG: IdGenerator, C: Clock> SpanQueue<IG, C> {
     }
 
     #[inline]
-    pub fn clear(&mut self) {
-        self.span_queue.clear();
-        self.next_parent_id = SpanId::new(0);
-    }
-
-    #[inline]
     pub fn remove_before(&mut self, index: usize) {
         self.span_queue.remove_before(index);
     }
 
     #[inline]
     pub fn iter_skip_to(&self, index: usize) -> impl Iterator<Item = &Span> {
+        self.span_queue.iter_ref_skip_to(index)
+    }
+
+    #[inline]
+    pub fn into_iter_skip_to(&mut self, index: usize) -> impl Iterator<Item = Span> {
         self.span_queue.iter_skip_to(index)
     }
 

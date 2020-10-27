@@ -55,15 +55,22 @@ impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {
         l
     }
 
-    pub fn spans_from(&self, listener: Listener) -> impl Iterator<Item = Span> + '_ {
-        Iter::new(self.span_queue.iter_skip_to(listener.queue_index))
-    }
-
-    pub fn unregister(&mut self, listener: Listener) -> Arc<AcquirerGroup> {
+    pub fn unregister_and_collect(
+        &mut self,
+        listener: Listener,
+    ) -> (Arc<AcquirerGroup>, Vec<Span>) {
         let acg = self.local_acquirer_groups.remove(listener.slab_index);
         self.registry.unregister(listener);
-        self.gc();
-        acg
+
+        let spans = if self.registry.is_empty() {
+            Iter::new(self.span_queue.into_iter_skip_to(listener.queue_index)).collect()
+        } else {
+            let s = Iter::new(self.span_queue.iter_skip_to(listener.queue_index)).collect();
+            self.gc();
+            s
+        };
+
+        (acg, spans)
     }
 
     /// Return `None` if there're no registered acquirers, or all acquirers
@@ -81,14 +88,16 @@ impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {
     pub fn cycle_to_realtime(&self, cycle: Cycle) -> Realtime {
         self.span_queue.cycle_to_realtime(cycle)
     }
+
+    // pub fn add_property(&self, key: &'static str, value: String) {
+    //     self.span_queue
+    // }
 }
 
 impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {
     fn gc(&mut self) {
         if let Some(l) = self.registry.earliest_listener() {
             self.span_queue.remove_before(l.queue_index);
-        } else {
-            self.span_queue.clear();
         }
     }
 
@@ -108,12 +117,13 @@ impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {
     }
 }
 
-pub struct Iter<'a, I: Iterator<Item = &'a Span>> {
+/// An iterator that collecting proper completed spans from the queue iterator.
+pub struct Iter<S: Into<Span> + AsRef<Span>, I: Iterator<Item = S>> {
     raw_iter: I,
     remaining_descendants: usize,
 }
 
-impl<'a, I: Iterator<Item = &'a Span>> Iter<'a, I> {
+impl<S: Into<Span> + AsRef<Span>, I: Iterator<Item = S>> Iter<S, I> {
     pub fn new(raw_iter: I) -> Self {
         Self {
             raw_iter,
@@ -122,25 +132,26 @@ impl<'a, I: Iterator<Item = &'a Span>> Iter<'a, I> {
     }
 }
 
-impl<'a, I: Iterator<Item = &'a Span>> Iterator for Iter<'a, I> {
+impl<S: Into<Span> + AsRef<Span>, I: Iterator<Item = S>> Iterator for Iter<S, I> {
     type Item = Span;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.remaining_descendants > 0 {
             self.remaining_descendants -= 1;
-            return self.raw_iter.next().cloned();
+            return self.raw_iter.next().map(Into::into);
         }
 
         while let Some(span) = self.raw_iter.next() {
             // skip non-finished span
-            if span.end_cycles.is_zero() {
+            let span = span.as_ref();
+            if span.end_cycle.is_zero() {
                 continue;
             }
 
             self.remaining_descendants = span._descendant_count;
 
             // set as a root span
-            let mut span = *span;
+            let mut span: Span = span.into();
             span.parent_id = SpanId::new(0);
 
             return Some(span);
