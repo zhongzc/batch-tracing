@@ -380,12 +380,15 @@ impl<T> FixedIndexQueue<T> {
 impl<T> Index<usize> for FixedIndexQueue<T> {
     type Output = T;
 
+    #[inline]
     fn index(&self, index: usize) -> &Self::Output {
         &self.internal[index.wrapping_sub(self.offset)]
     }
 }
 
 impl<T> IndexMut<usize> for FixedIndexQueue<T> {
+
+    #[inline]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.internal[index.wrapping_sub(self.offset)]
     }
