@@ -36,7 +36,7 @@ impl Trapper {
         match state {
             r @ State::Registered(_) => self.state = Some(r),
             State::Unregistered(acg) => SPAN_LINE.with(|span_line| {
-                let span_line = unsafe { &mut *span_line.get() };
+                let mut span_line = span_line.borrow_mut();
                 let listener = span_line.register_now(acg);
                 self.state = Some(State::Registered(listener))
             }),
@@ -53,7 +53,7 @@ impl Trapper {
         match state {
             u @ State::Unregistered(_) => self.state = Some(u),
             State::Registered(listener) => SPAN_LINE.with(|span_line| {
-                let span_line = unsafe { &mut *span_line.get() };
+                let mut span_line = span_line.borrow_mut();
                 let (acg, spans) = span_line.unregister_and_collect(listener);
                 self.caught_spans.extend(spans);
                 self.state = Some(State::Unregistered(acg));

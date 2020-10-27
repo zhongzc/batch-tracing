@@ -1,4 +1,4 @@
-use std::cell::UnsafeCell;
+use std::cell::Cell;
 use std::sync::atomic::{AtomicU16, AtomicU32, Ordering};
 
 /// TODO: doc
@@ -22,20 +22,26 @@ fn next_snowflake_id_prefix() -> u16 {
     NEXT_SNOWFLAKE_ID_PREFIX.fetch_add(1, Ordering::AcqRel)
 }
 thread_local! {
-    static SNOWFLACK_ID_GENERATOR: UnsafeCell<(u16, u16)> = UnsafeCell::new((next_snowflake_id_prefix(), 1))
+    static SNOWFLACK_ID_GENERATOR: Cell<(u16, u16)> = Cell::new((next_snowflake_id_prefix(), 0))
 }
 
 impl IdGenerator for DefaultIdGenerator {
     fn next_id(&self) -> SpanId {
-        let (prefix, suffix) = SNOWFLACK_ID_GENERATOR.with(|g| unsafe { &mut *g.get() });
-        if *suffix == std::u16::MAX {
-            *suffix = 0;
-            *prefix = next_snowflake_id_prefix();
-        }
-        *suffix += 1;
-        SpanId::new(
-            ((Self::get_prefix() as u64) << 32) | ((*prefix as u64) << 16) | (*suffix as u64),
-        )
+        SNOWFLACK_ID_GENERATOR.with(|g| {
+            let (mut prefix, mut suffix) = g.get();
+
+            if suffix == std::u16::MAX {
+                suffix = 0;
+                prefix = next_snowflake_id_prefix();
+            }
+            suffix += 1;
+
+            g.set((prefix, suffix));
+
+            SpanId::new(
+                ((Self::get_prefix() as u64) << 32) | ((prefix as u64) << 16) | (suffix as u64),
+            )
+        })
     }
 }
 

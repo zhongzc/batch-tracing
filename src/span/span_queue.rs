@@ -101,12 +101,12 @@ impl<IG: IdGenerator, C: Clock> SpanQueue<IG, C> {
     }
 
     #[inline]
-    pub fn iter_skip_to(&self, index: usize) -> impl Iterator<Item = &Span> {
+    pub fn iter_ref_skip_to(&self, index: usize) -> impl Iterator<Item = &Span> {
         self.span_queue.iter_ref_skip_to(index)
     }
 
     #[inline]
-    pub fn into_iter_skip_to(&mut self, index: usize) -> impl Iterator<Item = Span> {
+    pub fn iter_skip_to(&mut self, index: usize) -> impl Iterator<Item = Span> {
         self.span_queue.iter_skip_to(index)
     }
 

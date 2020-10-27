@@ -1,15 +1,15 @@
 use crate::local::registry::{Listener, Registry};
-use crate::span::cycle::{Clock, Cycle, Realtime, DefaultClock};
-use crate::span::span_id::{IdGenerator, SpanId, DefaultIdGenerator};
+use crate::span::cycle::{Clock, Cycle, DefaultClock, Realtime};
+use crate::span::span_id::{DefaultIdGenerator, IdGenerator, SpanId};
 use crate::span::span_queue::{SpanHandle, SpanQueue};
 use crate::span::{ExternalSpan, Span};
 use crate::trace::acquirer::AcquirerGroup;
 use slab::Slab;
-use std::cell::UnsafeCell;
+use std::cell::RefCell;
 use std::sync::Arc;
 
 thread_local! {
-    pub(super) static SPAN_LINE: UnsafeCell<SpanLine<DefaultIdGenerator, DefaultClock>> = UnsafeCell::new(SpanLine::new(DefaultIdGenerator, DefaultClock));
+    pub(super) static SPAN_LINE: RefCell<SpanLine<DefaultIdGenerator, DefaultClock>> = RefCell::new(SpanLine::new(DefaultIdGenerator, DefaultClock));
 }
 
 pub struct SpanLine<IdGenerator, Clock> {
@@ -64,9 +64,9 @@ impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {
         self.registry.unregister(listener);
 
         let spans = if self.registry.is_empty() {
-            Iter::new(self.span_queue.into_iter_skip_to(listener.queue_index)).collect()
+            Iter::new(self.span_queue.iter_skip_to(listener.queue_index)).collect()
         } else {
-            let s = Iter::new(self.span_queue.iter_skip_to(listener.queue_index)).collect();
+            let s = Iter::new(self.span_queue.iter_ref_skip_to(listener.queue_index)).collect();
             self.gc();
             s
         };

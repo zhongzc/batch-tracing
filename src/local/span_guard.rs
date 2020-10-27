@@ -11,7 +11,7 @@ impl LocalSpanGuard {
     #[inline]
     pub(crate) fn new(event: &'static str) -> Self {
         SPAN_LINE.with(|span_line| {
-            let span_line = unsafe { &mut *span_line.get() };
+            let mut span_line = span_line.borrow_mut();
             let span_handle = span_line.start_span(event);
             Self { span_handle }
         })
@@ -45,7 +45,7 @@ impl LocalSpanGuard {
     ) {
         if let Some(span_handle) = &self.span_handle {
             SPAN_LINE.with(|span_line| {
-                let span_line = unsafe { &mut *span_line.get() };
+                let span_line = &mut *span_line.borrow_mut();
                 f(span_handle, span_line);
             })
         }
@@ -57,7 +57,7 @@ impl Drop for LocalSpanGuard {
     fn drop(&mut self) {
         if let Some(span_handle) = self.span_handle.take() {
             SPAN_LINE.with(|span_line| {
-                let span_line = unsafe { &mut *span_line.get() };
+                let mut span_line = span_line.borrow_mut();
                 span_line.finish_span(span_handle);
             });
         }
