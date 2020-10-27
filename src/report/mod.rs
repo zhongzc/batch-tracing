@@ -1,7 +1,9 @@
 use crate::local::time_convert::cycle_to_realtime;
 use crate::Span;
 use rustracing_jaeger::thrift::agent::EmitBatchNotification;
-use rustracing_jaeger::thrift::jaeger::{Batch, Process, Span as JaegerSpan, SpanRef, SpanRefKind};
+use rustracing_jaeger::thrift::jaeger::{
+    Batch, Process, Span as JaegerSpan, SpanRef, SpanRefKind, Tag,
+};
 use std::error::Error;
 use std::net::{SocketAddr, UdpSocket};
 use thrift_codec::message::Message;
@@ -51,7 +53,14 @@ impl Reporter {
                             flags: 1,
                             start_time: (begin_cycles.ns / 1_000) as i64,
                             duration: ((end_time.ns - begin_cycles.ns) / 1_000) as i64,
-                            tags: vec![],
+                            tags: s
+                                .properties
+                                .into_iter()
+                                .map(|p| Tag::String {
+                                    key: p.0.to_owned(),
+                                    value: p.1,
+                                })
+                                .collect(),
                             logs: vec![],
                         }
                     })

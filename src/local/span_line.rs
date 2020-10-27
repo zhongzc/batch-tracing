@@ -1,7 +1,7 @@
 use crate::local::registry::{Listener, Registry};
 use crate::span::cycle::{Clock, Cycle, Realtime, TempClock};
 use crate::span::span_id::{IdGenerator, SpanId, TempIdGenerator};
-use crate::span::span_queue::{Finisher, SpanQueue};
+use crate::span::span_queue::{SpanHandle, SpanQueue};
 use crate::span::{ExternalSpan, Span};
 use crate::trace::acquirer::AcquirerGroup;
 use slab::Slab;
@@ -27,7 +27,8 @@ impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {
         }
     }
 
-    pub fn start_span(&mut self, event: &'static str) -> Option<Finisher> {
+    #[inline]
+    pub fn start_span(&mut self, event: &'static str) -> Option<SpanHandle> {
         if self.registry.is_empty() {
             return None;
         }
@@ -36,8 +37,8 @@ impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {
     }
 
     #[inline]
-    pub fn finish_span(&mut self, finisher: Finisher) {
-        self.span_queue.finish_span(finisher);
+    pub fn finish_span(&mut self, span_handle: SpanHandle) {
+        self.span_queue.finish_span(span_handle);
     }
 
     pub fn start_root_external_span(&mut self, event: &'static str) -> ExternalSpan {
@@ -85,13 +86,28 @@ impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {
         }
     }
 
+    #[inline]
     pub fn cycle_to_realtime(&self, cycle: Cycle) -> Realtime {
         self.span_queue.cycle_to_realtime(cycle)
     }
 
-    // pub fn add_property(&self, key: &'static str, value: String) {
-    //     self.span_queue
-    // }
+    #[inline]
+    pub fn add_properties<I: IntoIterator<Item = (&'static str, String)>, F: FnOnce() -> I>(
+        &mut self,
+        span_handle: &SpanHandle,
+        properties: F,
+    ) {
+        self.span_queue.add_properties(span_handle, properties);
+    }
+
+    #[inline]
+    pub fn add_property<F: FnOnce() -> (&'static str, String)>(
+        &mut self,
+        span_handle: &SpanHandle,
+        property: F,
+    ) {
+        self.span_queue.add_property(span_handle, property);
+    }
 }
 
 impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {

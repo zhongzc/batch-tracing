@@ -58,7 +58,8 @@ mod tests {
         {
             // wide
             for _ in 0..2 {
-                let _g = new_span("iter span");
+                let _g = new_span("iter span")
+                    .with_property(|| ("tmp_property", "tmp_value".into()));
             }
         }
 

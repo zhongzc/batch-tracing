@@ -21,24 +21,46 @@ impl<IG: IdGenerator, C: Clock> SpanQueue<IG, C> {
     }
 
     #[inline]
-    pub fn start_span(&mut self, event: &'static str) -> Finisher {
+    pub fn start_span(&mut self, event: &'static str) -> SpanHandle {
         let s = self.gen_span(self.next_parent_id, event);
         self.next_parent_id = s.id;
         let index = self.push_span(s);
-        Finisher { index }
+        SpanHandle { index }
     }
 
     #[inline]
-    pub fn finish_span(&mut self, finisher: Finisher) {
-        if !self.span_queue.idx_is_valid(finisher.index) {
-            return;
-        }
+    pub fn finish_span(&mut self, span_handle: SpanHandle) {
+        debug_assert!(self.span_queue.idx_is_valid(span_handle.index));
 
-        let descendant_count = self.count_to_last(finisher.index);
-        let span = &mut self.span_queue[finisher.index];
+        let descendant_count = self.count_to_last(span_handle.index);
+        let span = &mut self.span_queue[span_handle.index];
         span.end_with(self.clock.now(), descendant_count);
 
         self.next_parent_id = span.parent_id;
+    }
+
+    #[inline]
+    pub fn add_properties<I: IntoIterator<Item = (&'static str, String)>, F: FnOnce() -> I>(
+        &mut self,
+        span_handle: &SpanHandle,
+        properties: F,
+    ) {
+        debug_assert!(self.span_queue.idx_is_valid(span_handle.index));
+
+        let span = &mut self.span_queue[span_handle.index];
+        span.properties.extend(properties());
+    }
+
+    #[inline]
+    pub fn add_property<F: FnOnce() -> (&'static str, String)>(
+        &mut self,
+        span_handle: &SpanHandle,
+        property: F,
+    ) {
+        debug_assert!(self.span_queue.idx_is_valid(span_handle.index));
+
+        let span = &mut self.span_queue[span_handle.index];
+        span.properties.push(property());
     }
 
     #[inline]
@@ -126,6 +148,6 @@ impl<IG: IdGenerator, C: Clock> SpanQueue<IG, C> {
     }
 }
 
-pub struct Finisher {
+pub struct SpanHandle {
     pub(self) index: usize,
 }

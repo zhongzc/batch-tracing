@@ -32,5 +32,6 @@ harness = false
 [workspace]
 members = [ "crates/*" ]
 
-[profile.release]
-debug = true
+[profile.bench]
+opt-level = 3
+lto = true
