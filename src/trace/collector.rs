@@ -16,9 +16,13 @@ impl Collector {
     ///
     /// If passing `duration_threshold`, all spans will be reserved only when duration of the root
     /// span exceeds `duration_threshold`, otherwise only one span, the root span, will be returned.
-    pub fn collect(self, duration_threshold: Option<Duration>) -> Vec<Span> {
+    pub fn collect(self, is_sync: bool, duration_threshold: Option<Duration>) -> Vec<Span> {
         let anchor = DefaultClock::anchor();
-        let spans: Vec<_> = self.receiver.try_iter().flatten().collect();
+        let spans: Vec<_> = if is_sync {
+            self.receiver.iter().flatten().collect()
+        } else {
+            self.receiver.try_iter().flatten().collect()
+        };
         self.closed.store(true, Ordering::SeqCst);
         if let Some(duration) = duration_threshold {
             if let Some(span) = spans.iter().find(|s| s.is_root()) {
