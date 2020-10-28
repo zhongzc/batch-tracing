@@ -1,22 +1,18 @@
 use crate::collections::queue::FixedIndexQueue;
-use crate::span::cycle::{Clock, Cycle, Realtime};
-use crate::span::span_id::{IdGenerator, SpanId};
+use crate::span::cycle::{Cycle, DefaultClock};
+use crate::span::span_id::{DefaultIdGenerator, SpanId};
 use crate::span::{ExternalSpan, Span};
 
-pub struct SpanQueue<IdGenerator, Clock> {
+pub struct SpanQueue {
     span_queue: FixedIndexQueue<Span>,
     next_parent_id: SpanId,
-    id_generator: IdGenerator,
-    clock: Clock,
 }
 
-impl<IG: IdGenerator, C: Clock> SpanQueue<IG, C> {
-    pub fn new(id_generator: IG, clock: C) -> Self {
+impl SpanQueue {
+    pub fn new() -> Self {
         Self {
             span_queue: FixedIndexQueue::new(),
             next_parent_id: SpanId::new(0),
-            id_generator,
-            clock,
         }
     }
 
@@ -34,7 +30,7 @@ impl<IG: IdGenerator, C: Clock> SpanQueue<IG, C> {
 
         let descendant_count = self.count_to_last(span_handle.index);
         let span = &mut self.span_queue[span_handle.index];
-        span.end_with(self.clock.now(), descendant_count);
+        span.end_with(DefaultClock::now(), descendant_count);
 
         self.next_parent_id = span.parent_id;
     }
@@ -82,12 +78,12 @@ impl<IG: IdGenerator, C: Clock> SpanQueue<IG, C> {
 
     #[inline]
     pub fn start_root_external_span(&mut self, event: &'static str) -> ExternalSpan {
-        self.gen_external_span(SpanId::new(0), event, self.clock.now())
+        self.gen_external_span(SpanId::new(0), event, DefaultClock::now())
     }
 
     #[inline]
     pub fn finish_external_span(&self, external_span: &ExternalSpan) -> Span {
-        external_span.to_span(self.clock.now())
+        external_span.to_span(DefaultClock::now())
     }
 
     #[inline]
@@ -109,20 +105,15 @@ impl<IG: IdGenerator, C: Clock> SpanQueue<IG, C> {
     pub fn iter_skip_to(&mut self, index: usize) -> impl Iterator<Item = Span> {
         self.span_queue.iter_skip_to(index)
     }
-
-    #[inline]
-    pub fn cycle_to_realtime(&self, cycle: Cycle) -> Realtime {
-        self.clock.cycle_to_realtime(cycle)
-    }
 }
 
-impl<IG: IdGenerator, C: Clock> SpanQueue<IG, C> {
+impl SpanQueue {
     #[inline]
     fn gen_span(&self, parent_id: SpanId, event: &'static str) -> Span {
         Span::begin_with(
-            self.id_generator.next_id(),
+            DefaultIdGenerator::next_id(),
             parent_id,
-            self.clock.now(),
+            DefaultClock::now(),
             event,
         )
     }
@@ -134,7 +125,7 @@ impl<IG: IdGenerator, C: Clock> SpanQueue<IG, C> {
         event: &'static str,
         begin_cycle: Cycle,
     ) -> ExternalSpan {
-        ExternalSpan::new(self.id_generator.next_id(), parent_id, begin_cycle, event)
+        ExternalSpan::new(DefaultIdGenerator::next_id(), parent_id, begin_cycle, event)
     }
 
     #[inline]

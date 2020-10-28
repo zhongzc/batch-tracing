@@ -1,6 +1,5 @@
 use crate::local::registry::{Listener, Registry};
-use crate::span::cycle::{Clock, Cycle, DefaultClock, Realtime};
-use crate::span::span_id::{DefaultIdGenerator, IdGenerator, SpanId};
+use crate::span::span_id::SpanId;
 use crate::span::span_queue::{SpanHandle, SpanQueue};
 use crate::span::{ExternalSpan, Span};
 use crate::trace::acquirer::AcquirerGroup;
@@ -9,19 +8,19 @@ use std::cell::RefCell;
 use std::sync::Arc;
 
 thread_local! {
-    pub(super) static SPAN_LINE: RefCell<SpanLine<DefaultIdGenerator, DefaultClock>> = RefCell::new(SpanLine::new(DefaultIdGenerator, DefaultClock));
+    pub(super) static SPAN_LINE: RefCell<SpanLine> = RefCell::new(SpanLine::new());
 }
 
-pub struct SpanLine<IdGenerator, Clock> {
-    span_queue: SpanQueue<IdGenerator, Clock>,
+pub struct SpanLine {
+    span_queue: SpanQueue,
     registry: Registry,
     local_acquirer_groups: Slab<Arc<AcquirerGroup>>,
 }
 
-impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {
-    pub fn new(id_generator: IG, clock: C) -> Self {
+impl SpanLine {
+    pub fn new() -> Self {
         Self {
-            span_queue: SpanQueue::new(id_generator, clock),
+            span_queue: SpanQueue::new(),
             registry: Registry::default(),
             local_acquirer_groups: Slab::default(),
         }
@@ -87,11 +86,6 @@ impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {
     }
 
     #[inline]
-    pub fn cycle_to_realtime(&self, cycle: Cycle) -> Realtime {
-        self.span_queue.cycle_to_realtime(cycle)
-    }
-
-    #[inline]
     pub fn add_properties<I: IntoIterator<Item = (&'static str, String)>, F: FnOnce() -> I>(
         &mut self,
         span_handle: &SpanHandle,
@@ -110,7 +104,7 @@ impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {
     }
 }
 
-impl<IG: IdGenerator, C: Clock> SpanLine<IG, C> {
+impl SpanLine {
     fn gc(&mut self) {
         if let Some(l) = self.registry.earliest_listener() {
             self.span_queue.remove_before(l.queue_index);

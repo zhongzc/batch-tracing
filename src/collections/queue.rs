@@ -387,7 +387,6 @@ impl<T> Index<usize> for FixedIndexQueue<T> {
 }
 
 impl<T> IndexMut<usize> for FixedIndexQueue<T> {
-
     #[inline]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.internal[index.wrapping_sub(self.offset)]

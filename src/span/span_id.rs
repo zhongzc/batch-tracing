@@ -1,7 +1,6 @@
 use std::cell::Cell;
 use std::sync::atomic::{AtomicU16, AtomicU32, Ordering};
 
-/// TODO: doc
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct SpanId(pub u64);
 
@@ -11,22 +10,23 @@ impl SpanId {
     }
 }
 
-pub trait IdGenerator {
-    fn next_id(&self) -> SpanId;
-}
-
 pub struct DefaultIdGenerator;
 
 static NEXT_SNOWFLAKE_ID_PREFIX: AtomicU16 = AtomicU16::new(0);
 fn next_snowflake_id_prefix() -> u16 {
     NEXT_SNOWFLAKE_ID_PREFIX.fetch_add(1, Ordering::AcqRel)
 }
+
 thread_local! {
     static SNOWFLACK_ID_GENERATOR: Cell<(u16, u16)> = Cell::new((next_snowflake_id_prefix(), 0))
 }
 
-impl IdGenerator for DefaultIdGenerator {
-    fn next_id(&self) -> SpanId {
+/// Set by user
+static ID_PREFIX: AtomicU32 = AtomicU32::new(0);
+
+impl DefaultIdGenerator {
+    #[inline]
+    pub fn next_id() -> SpanId {
         SNOWFLACK_ID_GENERATOR.with(|g| {
             let (mut prefix, mut suffix) = g.get();
 
@@ -43,11 +43,7 @@ impl IdGenerator for DefaultIdGenerator {
             )
         })
     }
-}
 
-static ID_PREFIX: AtomicU32 = AtomicU32::new(0);
-
-impl DefaultIdGenerator {
     #[inline]
     pub fn set_prefix(prefix: u32) {
         ID_PREFIX.store(prefix, Ordering::Release);

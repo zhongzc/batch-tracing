@@ -1,4 +1,4 @@
-use crate::local::time_convert::cycle_to_realtime;
+use crate::span::cycle::DefaultClock;
 use crate::Span;
 use rustracing_jaeger::thrift::agent::EmitBatchNotification;
 use rustracing_jaeger::thrift::jaeger::{
@@ -27,6 +27,7 @@ impl Reporter {
         trace_id: u64,
         spans: Vec<Span>,
     ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
+        let anchor = DefaultClock::anchor();
         let bn = EmitBatchNotification {
             batch: Batch {
                 process: Process {
@@ -36,8 +37,8 @@ impl Reporter {
                 spans: spans
                     .into_iter()
                     .map(|s| {
-                        let begin_cycles = cycle_to_realtime(s.begin_cycle);
-                        let end_time = cycle_to_realtime(s.end_cycle);
+                        let begin_cycles = DefaultClock::cycle_to_realtime(s.begin_cycle, anchor);
+                        let end_time = DefaultClock::cycle_to_realtime(s.end_cycle, anchor);
                         JaegerSpan {
                             trace_id_low: trace_id as i64,
                             trace_id_high: 0,

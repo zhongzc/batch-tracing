@@ -14,7 +14,6 @@ use std::sync::atomic::AtomicBool;
 pub mod collections;
 pub mod future;
 pub mod report;
-pub use crate::local::time_convert::cycle_to_realtime;
 pub use batch_tracing_macro::{trace, trace_async};
 
 pub(crate) mod local;
