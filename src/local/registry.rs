@@ -21,6 +21,10 @@ impl Registry {
     pub fn earliest_listener(&self) -> Option<Listener> {
         self.listeners.first().cloned()
     }
+
+    pub fn len(&self) -> usize {
+        self.listeners.len()
+    }
 }
 
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq)]
