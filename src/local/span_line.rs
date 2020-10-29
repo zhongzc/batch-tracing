@@ -59,15 +59,18 @@ impl SpanLine {
         &mut self,
         listener: Listener,
     ) -> (Arc<AcquirerGroup>, Vec<Span>) {
-        let acg = self.local_acquirer_groups.remove(listener.slab_index);
-        self.registry.unregister(listener);
+
 
         // let spans = if self.registry.is_empty() {
         //     Iter::new(self.span_queue.iter_skip_to(listener.queue_index)).collect()
         // } else {
         let spans = Iter::new(self.span_queue.iter_ref_skip_to(listener.queue_index)).collect();
-        self.gc();
         // };
+
+        let acg = self.local_acquirer_groups.remove(listener.slab_index);
+        self.registry.unregister(listener);
+
+        self.gc();
 
         (acg, spans)
     }
