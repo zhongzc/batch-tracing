@@ -39,7 +39,7 @@ pub fn new_span(event: &'static str) -> LocalSpanGuard {
 }
 
 #[inline]
-pub fn set_id_prefix(id_prefix: u32) {
+pub fn set_span_id_prefix(id_prefix: u32) {
     DefaultIdGenerator::set_prefix(id_prefix)
 }
 

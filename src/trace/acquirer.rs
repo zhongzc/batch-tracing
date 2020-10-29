@@ -1,5 +1,5 @@
-use crate::local::acquirer_group::submit_task_span;
-use crate::span::{ExternalSpan, Span};
+use crate::span::cycle::DefaultClock;
+use crate::span::{ScopeSpan, Span};
 use crossbeam_channel::Sender;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -27,21 +27,23 @@ impl Acquirer {
 #[derive(Clone, Debug)]
 pub struct AcquirerGroup {
     /// A span represents task processing
-    task_span: ExternalSpan,
+    scope_span: ScopeSpan,
     acquirers: Vec<Acquirer>,
 }
 
 impl AcquirerGroup {
-    pub fn new(span: ExternalSpan, acquirers: Vec<Acquirer>) -> Self {
+    pub fn new(span: ScopeSpan, acquirers: Vec<Acquirer>) -> Self {
+        debug_assert!(!acquirers.is_empty());
+
         AcquirerGroup {
-            task_span: span,
+            scope_span: span,
             acquirers,
         }
     }
 
     pub fn combine<'a, I: Iterator<Item = &'a AcquirerGroup>>(
         iter: I,
-        external_span: ExternalSpan,
+        external_span: ScopeSpan,
     ) -> Self {
         let acquirers = iter
             .map(|s| {
@@ -55,8 +57,11 @@ impl AcquirerGroup {
             })
             .flatten()
             .collect::<Vec<_>>();
+
+        debug_assert!(!acquirers.is_empty());
+
         Self {
-            task_span: external_span,
+            scope_span: external_span,
             acquirers,
         }
     }
@@ -66,7 +71,7 @@ impl AcquirerGroup {
         self.submit_to_acquirers(spans);
     }
 
-    pub fn submit_task_span(&self, task_span: Span) {
+    pub fn submit_scope_span(&self, task_span: Span) {
         self.submit_to_acquirers(vec![task_span]);
     }
 }
@@ -75,7 +80,7 @@ impl AcquirerGroup {
     fn modify_root_spans(&self, spans: &mut [Span]) {
         for span in spans {
             if span.is_root() {
-                span.parent_id = self.task_span.id;
+                span.parent_id = self.scope_span.id;
             }
         }
     }
@@ -93,6 +98,6 @@ impl AcquirerGroup {
 
 impl Drop for AcquirerGroup {
     fn drop(&mut self) {
-        submit_task_span(self, &self.task_span)
+        self.submit_scope_span(self.scope_span.to_span(DefaultClock::now()));
     }
 }

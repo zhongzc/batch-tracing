@@ -1,6 +1,8 @@
-use crate::local::acquirer_group::{registered_acquirer_group, root_acquirer_group};
+use crate::local::acquirer_group::registered_acquirer_group;
 use crate::local::scope_guard::LocalScopeGuard;
-use crate::span::Span;
+use crate::span::cycle::DefaultClock;
+use crate::span::span_id::{DefaultIdGenerator, SpanId};
+use crate::span::{ScopeSpan, Span};
 use crate::trace::acquirer::{Acquirer, AcquirerGroup};
 use crossbeam_channel::Sender;
 use std::sync::atomic::AtomicBool;
@@ -23,11 +25,17 @@ impl Scope {
         sender: Sender<Vec<Span>>,
         closed: Arc<AtomicBool>,
     ) -> Self {
+        let root_span = ScopeSpan::new(
+            DefaultIdGenerator::next_id(),
+            SpanId::new(0),
+            DefaultClock::now(),
+            event,
+        );
+        let acq = Acquirer::new(Arc::new(sender), closed);
+        let acq_group = AcquirerGroup::new(root_span, vec![acq]);
+
         Self {
-            acquirer_group: Some(Arc::new(root_acquirer_group(
-                Acquirer::new(Arc::new(sender), closed),
-                event,
-            ))),
+            acquirer_group: Some(Arc::new(acq_group)),
         }
     }
 

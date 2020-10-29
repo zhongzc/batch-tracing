@@ -50,7 +50,7 @@ impl Span {
     }
 
     #[inline]
-    pub(crate) fn is_root(&self) -> bool {
+    pub fn is_root(&self) -> bool {
         self.parent_id == SpanId::new(0)
     }
 }
@@ -68,16 +68,16 @@ impl Into<Span> for &Span {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub struct ExternalSpan {
+pub struct ScopeSpan {
     pub id: SpanId,
     pub parent_id: SpanId,
     pub begin_cycles: Cycle,
     pub event: &'static str,
 }
 
-impl ExternalSpan {
+impl ScopeSpan {
     pub fn new(id: SpanId, parent_id: SpanId, begin_cycles: Cycle, event: &'static str) -> Self {
-        ExternalSpan {
+        ScopeSpan {
             id,
             parent_id,
             begin_cycles,

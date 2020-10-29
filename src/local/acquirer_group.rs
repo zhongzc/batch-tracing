@@ -1,27 +1,12 @@
 use crate::local::span_line::SPAN_LINE;
-use crate::span::ExternalSpan;
-use crate::trace::acquirer::{Acquirer, AcquirerGroup};
 
-/// Return registered acquirers from the current thread, or `None` if
-/// there're no acquires registered.
+use crate::trace::acquirer::AcquirerGroup;
+
+/// Returns registered acquirers from current thread, or `None` if there're no
+/// registered acquires.
 pub fn registered_acquirer_group(event: &'static str) -> Option<AcquirerGroup> {
     SPAN_LINE.with(|span_line| {
         let mut span_line = span_line.borrow_mut();
         span_line.registered_acquirer_group(event)
     })
-}
-
-pub fn root_acquirer_group(acquirer: Acquirer, event: &'static str) -> AcquirerGroup {
-    SPAN_LINE.with(|span_line| {
-        let mut span_line = span_line.borrow_mut();
-        AcquirerGroup::new(span_line.start_root_external_span(event), vec![acquirer])
-    })
-}
-
-pub fn submit_task_span(acg: &AcquirerGroup, task_span: &ExternalSpan) {
-    SPAN_LINE.with(|span_line| {
-        let span_line = span_line.borrow();
-        let s = span_line.finish_external_span(task_span);
-        acg.submit_task_span(s);
-    });
 }

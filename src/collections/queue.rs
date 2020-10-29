@@ -36,9 +36,9 @@ use std::ops::{Index, IndexMut};
 /// ```
 ///
 /// The index `1` indexes different elements in [VecDeque] according to how remaining
-/// elements are arranged. For [FixedIndexQueue], an element is indexed by the same number in
-/// most cases, so you can store indexes as references and won't worry about an index's
-/// misreferencing to another element.
+/// elements are arranged. For [FixedIndexQueue], an element is indexed by the same number,
+/// so you can store indexes as references and won't worry about an index's misreferencing
+/// to another element.
 #[derive(Debug, Clone, Default)]
 pub struct FixedIndexQueue<T> {
     offset: usize,

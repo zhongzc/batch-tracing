@@ -18,7 +18,7 @@ impl Registry {
         self.listeners.is_empty()
     }
 
-    pub fn earliest_listener(&self) -> Option<Listener> {
+    pub fn oldest_listener(&self) -> Option<Listener> {
         self.listeners.first().cloned()
     }
 }

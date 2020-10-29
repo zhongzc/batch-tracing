@@ -1,7 +1,7 @@
 use crate::collections::queue::FixedIndexQueue;
 use crate::span::cycle::{Cycle, DefaultClock};
 use crate::span::span_id::{DefaultIdGenerator, SpanId};
-use crate::span::{ExternalSpan, Span};
+use crate::span::{ScopeSpan, Span};
 
 pub struct SpanQueue {
     span_queue: FixedIndexQueue<Span>,
@@ -60,11 +60,11 @@ impl SpanQueue {
     }
 
     #[inline]
-    pub fn start_external_span(
+    pub fn start_scope_span(
         &mut self,
         placeholder_event: &'static str,
         event: &'static str,
-    ) -> ExternalSpan {
+    ) -> ScopeSpan {
         // add a spawn span for indirectly linking to the external span
         let mut s = self.gen_span(self.next_parent_id, placeholder_event);
         let cycle = s.begin_cycle;
@@ -73,17 +73,7 @@ impl SpanQueue {
         let es_parent = s.id;
         self.push_span(s);
 
-        self.gen_external_span(es_parent, event, cycle)
-    }
-
-    #[inline]
-    pub fn start_root_external_span(&mut self, event: &'static str) -> ExternalSpan {
-        self.gen_external_span(SpanId::new(0), event, DefaultClock::now())
-    }
-
-    #[inline]
-    pub fn finish_external_span(&self, external_span: &ExternalSpan) -> Span {
-        external_span.to_span(DefaultClock::now())
+        self.gen_scope_span(es_parent, event, cycle)
     }
 
     #[inline]
@@ -119,13 +109,13 @@ impl SpanQueue {
     }
 
     #[inline]
-    fn gen_external_span(
+    fn gen_scope_span(
         &self,
         parent_id: SpanId,
         event: &'static str,
         begin_cycle: Cycle,
-    ) -> ExternalSpan {
-        ExternalSpan::new(DefaultIdGenerator::next_id(), parent_id, begin_cycle, event)
+    ) -> ScopeSpan {
+        ScopeSpan::new(DefaultIdGenerator::next_id(), parent_id, begin_cycle, event)
     }
 
     #[inline]

@@ -1,7 +1,8 @@
 use crate::local::registry::{Listener, Registry};
+
 use crate::span::span_id::SpanId;
 use crate::span::span_queue::{SpanHandle, SpanQueue};
-use crate::span::{ExternalSpan, Span};
+use crate::span::{ScopeSpan, Span};
 use crate::trace::acquirer::AcquirerGroup;
 use slab::Slab;
 use std::cell::RefCell;
@@ -40,14 +41,6 @@ impl SpanLine {
         self.span_queue.finish_span(span_handle);
     }
 
-    pub fn start_root_external_span(&mut self, event: &'static str) -> ExternalSpan {
-        self.span_queue.start_root_external_span(event)
-    }
-
-    pub fn finish_external_span(&self, external_span: &ExternalSpan) -> Span {
-        self.span_queue.finish_external_span(external_span)
-    }
-
     pub fn register_now(&mut self, acquirer_group: Arc<AcquirerGroup>) -> Listener {
         let slab_idx = self.local_acquirer_groups.insert(acquirer_group);
         let l = Listener::new(self.span_queue.next_index(), slab_idx);
@@ -76,7 +69,7 @@ impl SpanLine {
     /// Return `None` if there're no registered acquirers, or all acquirers
     /// combined into one group.
     pub fn registered_acquirer_group(&mut self, event: &'static str) -> Option<AcquirerGroup> {
-        match self.start_external_span("<spawn>", event) {
+        match self.start_scope_span("<spawn>", event) {
             None => None,
             Some(es) => Some(AcquirerGroup::combine(
                 self.local_acquirer_groups.iter().map(|s| s.1.as_ref()),
@@ -106,24 +99,21 @@ impl SpanLine {
 
 impl SpanLine {
     fn gc(&mut self) {
-        if let Some(l) = self.registry.earliest_listener() {
+        if let Some(l) = self.registry.oldest_listener() {
             self.span_queue.remove_before(l.queue_index);
         }
     }
 
-    fn start_external_span(
+    fn start_scope_span(
         &mut self,
         placeholder_event: &'static str,
         event: &'static str,
-    ) -> Option<ExternalSpan> {
+    ) -> Option<ScopeSpan> {
         if self.registry.is_empty() {
             return None;
         }
 
-        Some(
-            self.span_queue
-                .start_external_span(placeholder_event, event),
-        )
+        Some(self.span_queue.start_scope_span(placeholder_event, event))
     }
 }
 
