@@ -23,6 +23,9 @@ impl Collector {
         } else {
             self.receiver.try_iter().flatten().collect()
         };
+
+        dbg!(spans.len());
+
         self.closed.store(true, Ordering::SeqCst);
         if let Some(duration) = duration_threshold {
             if let Some(span) = spans.iter().find(|s| s.is_root()) {
