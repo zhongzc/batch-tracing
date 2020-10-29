@@ -60,7 +60,8 @@ impl SpanLine {
         listener: Listener,
     ) -> (Arc<AcquirerGroup>, Vec<Span>) {
         let spans = if self.registry.len() == 1 {
-            Iter::new(self.span_queue.iter_skip_to(listener.queue_index)).collect()
+            // Iter::new(self.span_queue.iter_skip_to(listener.queue_index)).collect()
+            Iter::new(self.span_queue.iter_ref_skip_to(listener.queue_index)).collect()
         } else {
             Iter::new(self.span_queue.iter_ref_skip_to(listener.queue_index)).collect()
         };
