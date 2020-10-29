@@ -62,13 +62,12 @@ impl SpanLine {
         let acg = self.local_acquirer_groups.remove(listener.slab_index);
         self.registry.unregister(listener);
 
-        let spans = if self.registry.is_empty() {
-            Iter::new(self.span_queue.iter_skip_to(listener.queue_index)).collect()
-        } else {
-            let s = Iter::new(self.span_queue.iter_ref_skip_to(listener.queue_index)).collect();
-            self.gc();
-            s
-        };
+        // let spans = if self.registry.is_empty() {
+        //     Iter::new(self.span_queue.iter_skip_to(listener.queue_index)).collect()
+        // } else {
+        let spans = Iter::new(self.span_queue.iter_ref_skip_to(listener.queue_index)).collect();
+        self.gc();
+        // };
 
         (acg, spans)
     }
