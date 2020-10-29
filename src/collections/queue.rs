@@ -371,9 +371,10 @@ impl<T> FixedIndexQueue<T> {
     /// ```
     #[inline]
     pub fn iter_skip_to(&mut self, index: usize) -> impl Iterator<Item = T> {
+        let skip = index.wrapping_sub(self.offset);
         self.offset = self.offset.wrapping_add(self.internal.len());
         let vd = std::mem::take(&mut self.internal);
-        vd.into_iter().skip(index)
+        vd.into_iter().skip(skip)
     }
 }
 
