@@ -86,12 +86,12 @@ impl AcquirerGroup {
     }
 
     fn submit_to_acquirers(&self, spans: Vec<Span>) {
-        if self.acquirers.len() == 1 {
-            self.acquirers[0].submit(spans);
-        } else {
-            for acq in &self.acquirers {
-                acq.submit(spans.clone());
-            }
+        // save one clone
+        for acq in self.acquirers.iter().skip(1) {
+            acq.submit(spans.clone());
+        }
+        if let Some(acq) = self.acquirers.first() {
+            acq.submit(spans);
         }
     }
 }
