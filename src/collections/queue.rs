@@ -46,7 +46,7 @@ pub struct FixedIndexQueue<T> {
 }
 
 impl<T> FixedIndexQueue<T> {
-    /// Creates an empty `FixedIndexQueue` begins with an initial offset `0`
+    /// Creates an empty `FixedIndexQueue` begins with an initial offset `0`.
     ///
     /// # Examples
     ///
@@ -59,6 +59,22 @@ impl<T> FixedIndexQueue<T> {
         Self {
             offset: 0,
             internal: VecDeque::new(),
+        }
+    }
+
+    /// Creates an empty `FixedIndexQueue` with space for at least `capacity` elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use batch_tracing::collections::queue::FixedIndexQueue;
+    ///
+    /// let queue: FixedIndexQueue<i32> = FixedIndexQueue::with_capacity(1024);
+    /// ```
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            offset: 0,
+            internal: VecDeque::with_capacity(capacity),
         }
     }
 
@@ -335,46 +351,26 @@ impl<T> FixedIndexQueue<T> {
         self.internal.iter()
     }
 
-    /// Returns a front-to-end Iterator, beginning at `index`.
-    /// # Examples
-    /// ```
-    /// use batch_tracing::collections::queue::FixedIndexQueue;
-    ///
-    /// let mut queue = FixedIndexQueue::new();
-    /// queue.push_back(42);
-    /// queue.push_back(24);
-    /// queue.push_back(43);
-    ///
-    /// let b: &[_] = &[&43];
-    /// let c: Vec<&i32> = queue.iter_ref_skip_to(2).collect();
-    /// assert_eq!(&c[..], b);
-    /// ```
     #[inline]
-    pub fn iter_ref_skip_to(&self, index: usize) -> impl Iterator<Item = &T> {
-        let skip = index.wrapping_sub(self.offset);
-        self.internal.iter().skip(skip)
-    }
-
-    /// Returns a front-to-end IntoIterator, beginning at `index`.
-    /// # Examples
-    /// ```
-    /// use batch_tracing::collections::queue::FixedIndexQueue;
-    ///
-    /// let mut queue = FixedIndexQueue::new();
-    /// queue.push_back(42);
-    /// queue.push_back(24);
-    /// queue.push_back(43);
-    ///
-    /// let b: &[_] = &[43];
-    /// let mut c: Vec<_> = queue.iter_skip_to(2).collect();
-    /// assert_eq!(&c[..], b);
-    /// ```
-    #[inline]
-    pub fn iter_skip_to(&mut self, index: usize) -> impl Iterator<Item = T> {
+    pub fn take_queue_from(&mut self, index: usize) -> VecDeque<T> {
         let skip = index.wrapping_sub(self.offset);
         self.offset = self.offset.wrapping_add(self.internal.len());
-        let vd = std::mem::take(&mut self.internal);
-        vd.into_iter().skip(skip)
+        let mut vd = self.internal.split_off(0);
+        for _ in 0..skip {
+            vd.pop_front();
+        }
+        vd
+    }
+}
+
+impl<T: Clone> FixedIndexQueue<T> {
+    #[inline]
+    pub fn clone_queue_from(&self, index: usize) -> VecDeque<T> {
+        let mut r = self.internal.clone();
+        for _ in 0..index.wrapping_sub(self.offset) {
+            r.pop_front();
+        }
+        r
     }
 }
 

@@ -6,8 +6,9 @@ fn trace_wide_bench(c: &mut Criterion) {
         "trace_wide",
         |b, len| {
             b.iter(|| {
-                let (root_scope, collector) = root_scope("root");
-                {
+                let r = {
+                    let (root_scope, collector) = root_scope("root");
+
                     let _sg = root_scope.start_scope();
 
                     if *len > 1 {
@@ -15,9 +16,12 @@ fn trace_wide_bench(c: &mut Criterion) {
                             let _g = new_span("span");
                         }
                     }
-                }
 
-                black_box(collector.collect(false, None));
+                    collector
+                }
+                .collect(false, None, None);
+
+                black_box(r);
             });
         },
         vec![1, 10, 100, 1000, 10000],

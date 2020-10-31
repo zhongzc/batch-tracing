@@ -2,6 +2,7 @@ use crate::collections::queue::FixedIndexQueue;
 use crate::span::cycle::{Cycle, DefaultClock};
 use crate::span::span_id::{DefaultIdGenerator, SpanId};
 use crate::span::{ScopeSpan, Span};
+use std::collections::VecDeque;
 
 pub struct SpanQueue {
     span_queue: FixedIndexQueue<Span>,
@@ -11,7 +12,7 @@ pub struct SpanQueue {
 impl SpanQueue {
     pub fn new() -> Self {
         Self {
-            span_queue: FixedIndexQueue::new(),
+            span_queue: FixedIndexQueue::with_capacity(1024),
             next_parent_id: SpanId::new(0),
         }
     }
@@ -87,13 +88,13 @@ impl SpanQueue {
     }
 
     #[inline]
-    pub fn iter_ref_skip_to(&self, index: usize) -> impl Iterator<Item = &Span> {
-        self.span_queue.iter_ref_skip_to(index)
+    pub fn clone_queue_from(&self, index: usize) -> VecDeque<Span> {
+        self.span_queue.clone_queue_from(index)
     }
 
     #[inline]
-    pub fn iter_skip_to(&mut self, index: usize) -> impl Iterator<Item = Span> {
-        self.span_queue.iter_skip_to(index)
+    pub fn take_queue_from(&mut self, index: usize) -> VecDeque<Span> {
+        self.span_queue.take_queue_from(index)
     }
 }
 

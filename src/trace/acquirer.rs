@@ -1,22 +1,33 @@
 use crate::span::cycle::DefaultClock;
+use crate::span::span_id::SpanId;
 use crate::span::{ScopeSpan, Span};
 use crossbeam_channel::Sender;
+use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 #[derive(Clone, Debug)]
+pub enum SpanCollection {
+    LocalSpans {
+        spans: VecDeque<Span>,
+        parent_span_id: SpanId,
+    },
+    ScopeSpan(Span),
+}
+
+#[derive(Clone, Debug)]
 pub struct Acquirer {
-    sender: Arc<Sender<Vec<Span>>>,
+    sender: Arc<Sender<SpanCollection>>,
     closed: Arc<AtomicBool>,
 }
 
 impl Acquirer {
-    pub fn new(sender: Arc<Sender<Vec<Span>>>, closed: Arc<AtomicBool>) -> Self {
+    pub fn new(sender: Arc<Sender<SpanCollection>>, closed: Arc<AtomicBool>) -> Self {
         Acquirer { sender, closed }
     }
 
-    pub fn submit(&self, spans: Vec<Span>) {
-        self.sender.send(spans).ok();
+    pub fn submit(&self, span_collection: SpanCollection) {
+        self.sender.send(span_collection).ok();
     }
 
     pub fn is_shutdown(&self) -> bool {
@@ -43,7 +54,7 @@ impl AcquirerGroup {
 
     pub fn combine<'a, I: Iterator<Item = &'a AcquirerGroup>>(
         iter: I,
-        external_span: ScopeSpan,
+        scope_span: ScopeSpan,
     ) -> Self {
         let acquirers = iter
             .map(|s| {
@@ -61,37 +72,31 @@ impl AcquirerGroup {
         debug_assert!(!acquirers.is_empty());
 
         Self {
-            scope_span: external_span,
+            scope_span,
             acquirers,
         }
     }
 
-    pub fn submit(&self, mut spans: Vec<Span>) {
-        self.modify_root_spans(&mut spans);
-        self.submit_to_acquirers(spans);
+    pub fn submit(&self, spans: VecDeque<Span>) {
+        self.submit_to_acquirers(SpanCollection::LocalSpans {
+            spans,
+            parent_span_id: self.scope_span.id,
+        });
     }
 
-    pub fn submit_scope_span(&self, task_span: Span) {
-        self.submit_to_acquirers(vec![task_span]);
+    pub fn submit_scope_span(&self, scope_span: Span) {
+        self.submit_to_acquirers(SpanCollection::ScopeSpan(scope_span));
     }
 }
 
 impl AcquirerGroup {
-    fn modify_root_spans(&self, spans: &mut [Span]) {
-        for span in spans {
-            if span.is_root() {
-                span.parent_id = self.scope_span.id;
-            }
-        }
-    }
-
-    fn submit_to_acquirers(&self, spans: Vec<Span>) {
+    fn submit_to_acquirers(&self, span_collection: SpanCollection) {
         // save one clone
         for acq in self.acquirers.iter().skip(1) {
-            acq.submit(spans.clone());
+            acq.submit(span_collection.clone());
         }
         if let Some(acq) = self.acquirers.first() {
-            acq.submit(spans);
+            acq.submit(span_collection);
         }
     }
 }

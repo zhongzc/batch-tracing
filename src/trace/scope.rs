@@ -2,9 +2,10 @@ use crate::local::acquirer_group::registered_acquirer_group;
 use crate::local::scope_guard::LocalScopeGuard;
 use crate::span::cycle::DefaultClock;
 use crate::span::span_id::{DefaultIdGenerator, SpanId};
-use crate::span::{ScopeSpan, Span};
-use crate::trace::acquirer::{Acquirer, AcquirerGroup};
+use crate::span::ScopeSpan;
+use crate::trace::acquirer::{Acquirer, AcquirerGroup, SpanCollection};
 use crossbeam_channel::Sender;
+
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
@@ -22,7 +23,7 @@ impl Scope {
 impl Scope {
     pub(crate) fn new_root_scope(
         event: &'static str,
-        sender: Sender<Vec<Span>>,
+        sender: Sender<SpanCollection>,
         closed: Arc<AtomicBool>,
     ) -> Self {
         let root_span = ScopeSpan::new(

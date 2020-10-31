@@ -1,11 +1,11 @@
 use crate::local::registry::{Listener, Registry};
 
-use crate::span::span_id::SpanId;
 use crate::span::span_queue::{SpanHandle, SpanQueue};
 use crate::span::{ScopeSpan, Span};
 use crate::trace::acquirer::AcquirerGroup;
 use slab::Slab;
 use std::cell::RefCell;
+use std::collections::VecDeque;
 use std::sync::Arc;
 
 thread_local! {
@@ -51,14 +51,14 @@ impl SpanLine {
     pub fn unregister_and_collect(
         &mut self,
         listener: Listener,
-    ) -> (Arc<AcquirerGroup>, Vec<Span>) {
+    ) -> (Arc<AcquirerGroup>, VecDeque<Span>) {
         let acg = self.local_acquirer_groups.remove(listener.slab_index);
         self.registry.unregister(listener);
 
         let spans = if self.registry.is_empty() {
-            Iter::new(self.span_queue.iter_skip_to(listener.queue_index)).collect()
+            self.span_queue.take_queue_from(listener.queue_index)
         } else {
-            let s = Iter::new(self.span_queue.iter_ref_skip_to(listener.queue_index)).collect();
+            let s = self.span_queue.clone_queue_from(listener.queue_index);
             self.gc();
             s
         };
@@ -114,49 +114,5 @@ impl SpanLine {
         }
 
         Some(self.span_queue.start_scope_span(placeholder_event, event))
-    }
-}
-
-/// An iterator that collecting proper completed spans from the queue iterator.
-pub struct Iter<S: Into<Span> + AsRef<Span>, I: Iterator<Item = S>> {
-    raw_iter: I,
-    remaining_descendants: usize,
-}
-
-impl<S: Into<Span> + AsRef<Span>, I: Iterator<Item = S>> Iter<S, I> {
-    pub fn new(raw_iter: I) -> Self {
-        Self {
-            raw_iter,
-            remaining_descendants: 0,
-        }
-    }
-}
-
-impl<S: Into<Span> + AsRef<Span>, I: Iterator<Item = S>> Iterator for Iter<S, I> {
-    type Item = Span;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.remaining_descendants > 0 {
-            self.remaining_descendants -= 1;
-            return self.raw_iter.next().map(Into::into);
-        }
-
-        while let Some(span) = self.raw_iter.next() {
-            // skip non-finished span
-            let span = span.as_ref();
-            if span.end_cycle.is_zero() {
-                continue;
-            }
-
-            self.remaining_descendants = span._descendant_count;
-
-            // set as a root span
-            let mut span: Span = span.into();
-            span.parent_id = SpanId::new(0);
-
-            return Some(span);
-        }
-
-        None
     }
 }

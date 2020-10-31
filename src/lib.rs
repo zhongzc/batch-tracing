@@ -97,7 +97,7 @@ mod tests {
 
             collector
         }
-        .collect(false, None);
+        .collect(false, None, None);
 
         assert_eq!(spans.len(), 5);
         report("single_thread_single_scope", spans);
@@ -121,9 +121,9 @@ mod tests {
             };
 
             (
-                c1.collect(false, None),
-                c2.collect(false, None),
-                c3.collect(false, None),
+                c1.collect(false, None, None),
+                c2.collect(false, None, None),
+                c3.collect(false, None, None),
             )
         };
 
@@ -162,7 +162,7 @@ mod tests {
 
             collector
         }
-        .collect(false, None);
+        .collect(false, None, None);
 
         assert_eq!(spans.len(), 25);
         report("multiple_threads_single_scope", spans);
@@ -199,7 +199,7 @@ mod tests {
                 (collector1, collector2)
             };
 
-            (c1.collect(false, None), c2.collect(false, None))
+            (c1.collect(false, None, None), c2.collect(false, None, None))
         };
 
         assert_eq!(spans1.len(), 25);
