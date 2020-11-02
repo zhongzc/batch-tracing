@@ -42,6 +42,14 @@ impl SpanLine {
     }
 
     pub fn register_now(&mut self, acquirer_group: Arc<AcquirerGroup>) -> Listener {
+        debug_assert_eq!(
+            self.local_acquirer_groups.len(),
+            self.registry.len(),
+            "expect same length, but length of local_acquirer_groups is {}, length of registry is {}",
+            self.local_acquirer_groups.len(),
+            self.registry.len(),
+        );
+
         let slab_idx = self.local_acquirer_groups.insert(acquirer_group);
         let l = Listener::new(self.span_queue.next_index(), slab_idx);
         self.registry.register(l);
@@ -52,6 +60,14 @@ impl SpanLine {
         &mut self,
         listener: Listener,
     ) -> (Arc<AcquirerGroup>, VecDeque<Span>) {
+        debug_assert_eq!(
+            self.local_acquirer_groups.len(),
+            self.registry.len(),
+            "expect same length, but length of local_acquirer_groups is {}, length of registry is {}",
+            self.local_acquirer_groups.len(),
+            self.registry.len(),
+        );
+
         let acg = self.local_acquirer_groups.remove(listener.slab_index);
         self.registry.unregister(listener);
 
