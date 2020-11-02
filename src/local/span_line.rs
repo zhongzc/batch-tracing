@@ -87,10 +87,9 @@ impl SpanLine {
     pub fn registered_acquirer_group(&mut self, event: &'static str) -> Option<AcquirerGroup> {
         match self.start_scope_span("<spawn>", event) {
             None => None,
-            Some(es) => Some(AcquirerGroup::combine(
-                self.local_acquirer_groups.iter().map(|s| s.1.as_ref()),
-                es,
-            )),
+            Some(es) => {
+                AcquirerGroup::combine(self.local_acquirer_groups.iter().map(|s| s.1.as_ref()), es)
+            }
         }
     }
 

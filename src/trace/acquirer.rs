@@ -55,7 +55,7 @@ impl AcquirerGroup {
     pub fn combine<'a, I: Iterator<Item = &'a AcquirerGroup>>(
         iter: I,
         scope_span: ScopeSpan,
-    ) -> Self {
+    ) -> Option<Self> {
         let acquirers = iter
             .map(|s| {
                 s.acquirers.iter().filter_map(|acq| {
@@ -69,11 +69,13 @@ impl AcquirerGroup {
             .flatten()
             .collect::<Vec<_>>();
 
-        debug_assert!(!acquirers.is_empty());
-
-        Self {
-            scope_span,
-            acquirers,
+        if acquirers.is_empty() {
+            None
+        } else {
+            Some(Self {
+                scope_span,
+                acquirers,
+            })
         }
     }
 
